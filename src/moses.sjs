@@ -1,0 +1,335 @@
+var Moses = {
+  name: "Moses",
+  //note, marklogic requires this to do the backend calculations for certain geo functions
+  geo: require('/MarkLogic/geospatial/geospatial'),
+  methods: function(obj) {
+    return Object.getOwnPropertyNames(obj).filter(function(p) {
+      return typeof obj[p] === 'function';
+    });
+  }
+};
+Moses.Feature = {
+  className: 'Feature',
+  getFeatureByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('feature-code'),
+      cts.jsonPropertyRangeQuery('featureCode', '=', code)
+    ])).toArray()[0].root;
+  },
+  getFeatureByClass: function(featureClass) {
+    return cts.search(cts.andQuery([cts.collectionQuery('feature-code'),
+      cts.jsonPropertyRangeQuery('featureClass', '=', featureClass)
+    ])).toArray();
+  },
+  getFeatureByFullCode: function(fullCode) {
+    fullCode = fullCode.split('.');
+    return this.getFeatureByPair(fullCode[0], fullCode[1]);
+  },
+  getFeatureNameByFullCode: function(fullCode) {
+    fullCode = fullCode.split('.');
+    return this.getFeatureNameByPair(fullCode[0], fullCode[1]);
+  },
+  getFeatureDescriptionByFullCode: function(fullCode) {
+    fullCode = fullCode.split('.');
+    return this.getFeatureDescriptionByPair(fullCode[0], fullCode[1]);
+  },
+  getFeatureByPair: function(featureClass, featureCode) {
+    return fn.doc('/feature-codes/' + featureClass + '/' + featureCode +
+      '.json');
+  },
+  getFeatureDescriptionByPair: function(featureClass, featureCode) {
+    return cts.doc('/feature-codes/' + featureClass + '/' + featureCode +
+      '.json').root.description;
+  },
+  getFeatureNameByPair: function(featureClass, featureCode) {
+    return cts.doc('/feature-codes/' + featureClass + '/' + featureCode +
+      '.json').root.asciiname;
+  },
+  getAllFeatureCodesFromClass: function(featureClass) {
+    return cts.elementValues(xs.QName('featureCode'), '', ['ascending'],
+      cts.andQuery([cts.elementValueQuery(xs.QName('featureClass'),
+        featureClass), cts.collectionQuery('feature-code')]));
+  },
+  getAllFeatureClasses: function() {
+    return cts.elementValues(xs.QName('featureClass'), '', [], cts.collectionQuery(
+      'feature-code')).toArray();
+  },
+  getAllFeatureCodes: function() {
+    var features = {};
+    var featureClasses = this.getAllFeatureClasses();
+    for (i = 0; i < featureClasses.length; i++) {
+      var featureClass = featureClasses[i];
+      features[featureClass] = this.getAllFeatureCodesFromClass(
+        featureClass);
+    }
+    return features;
+  },
+  getAllFeatureCodesFull: function() {
+    var features = {};
+    var featureClasses = this.getAllFeatureClasses();
+    for (i = 0; i < featureClasses.length; i++) {
+      var featureClass = featureClasses[i];
+      var uris = cts.uriMatch('/feature-codes/' + featureClass + '/*');
+      features[featureClass] = {};
+      for (var uri of uris) {
+        var doc = cts.doc(uri);
+        var featureCode = doc.root.featureCode;
+        features[featureClass][featureCode] = doc.root;
+      }
+    }
+    return features;
+  }
+};
+Moses.Country = {
+  className: 'Country',
+  getCountryByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('iso', '=', code)
+    ])).toArray()[0].root;
+  },
+  getCountryNameByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('iso', '=', code)
+    ])).toArray()[0].root.country;
+  },
+  getCountryByName: function(name) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.elementValueMatch('country', name.toLowerCase(),
+        'case-insensitive')
+    ])).toArray()[0].root;
+  },
+  getCountryById: function(id) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root;
+  },
+  getCountryNameById: function(id) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root.country;
+  },
+  getCountriesByContinent: function(continent) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('continent', '=', continent)
+    ])).toArray();
+  },
+  getCountryNamesByContinent: function(continent) {
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('continent', '=', continent)
+    ])).toArray().map(function(country) {
+      return country.root.country;
+    }).sort();
+  },
+  getCountryNeighborsById: function(id) {
+    return String(cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root.neighbours).split(',');
+  },
+  getCountryNeighborsByName: function(name) {
+    return String(cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.elementValueMatch('country', name.toLowerCase(),
+        'case-insensitive')
+    ])).toArray()[0].root.neighbours).split(',');
+  },
+  getCountryNeighborsByCode: function(code) {
+    return String(cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('iso', '=', code)
+    ])).toArray()[0].root.neighbours).split(',');
+  },
+  getFullCountryNeighborsByCode: function(code) {
+    var codes = String(cts.search(cts.andQuery([cts.collectionQuery(
+        'country'),
+      cts.jsonPropertyRangeQuery('iso', '=', code)
+    ])).toArray()[0].root.neighbours).split(',');
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('iso', '=', codes)
+    ])).toArray();
+  },
+  getFullCountryNeighborsById: function(id) {
+    var codes = String(cts.search(cts.andQuery([cts.collectionQuery(
+        'country'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root.neighbours).split(',');
+    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+      cts.jsonPropertyRangeQuery('iso', '=', codes)
+    ])).toArray();
+  }
+};
+Moses.AdminCode = {
+  className: 'AdminCode',
+  getFullCodeById: function(id) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root;
+  },
+  getNameById: function(id) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root.asciiname;
+  },
+  getCodeById: function(id) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('geonameid', '=', id)
+    ])).toArray()[0].root.adminCode;
+  },
+  getIdByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('adminCode', '=', code)
+    ])).toArray()[0].root.geonameid;
+  },
+  getFullCodeByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('adminCode', '=', code)
+    ])).toArray()[0].root;
+  },
+  getNameByCode: function(code) {
+      return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+        cts.jsonPropertyRangeQuery('adminCode', '=', code)
+      ])).toArray()[0].root.asciiname;
+    }
+    //todo
+    //child admin codes
+    //child admin names
+    //sibling admin names
+    //all admin names
+    //all admin codes
+    //all admin full
+};
+//this will build the options query for all types of lookups in the location
+Moses.QueryFilter = {
+  parseFilterOptions: function(options) {
+    var comboQuery = [cts.directoryQuery('/locations/')];
+    if ('featureClass' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('featureClass', '=',
+        options.featureClass));
+    }
+    if ('featureCode' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('featureCode', '=',
+        options.featureCode));
+    }
+    if ('countryCode' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=',
+        options.countryCode));
+    }
+    if ('population' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('population', options.population
+        .inequality, options.population.amount));
+    }
+    if ('name' in options && !('fuzzy' in options)) {
+      comboQuery.push(cts.jsonPropertyValueQuery(['asciiname', 'name'],
+        options.name, ['case-insensitive', 'diacritic-insensitive',
+          'punctuation-insensitive', 'whitespace-sensitive',
+          'unwildcarded'
+        ]));
+    }
+    if ('name' in options && 'fuzzy' in options) {
+      comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name'],
+        options.name, ['case-insensitive', 'diacritic-insensitive',
+          'punctuation-insensitive', 'whitespace-insensitive',
+          'wildcarded'
+        ]));
+    }
+    if ('geo' in options) {
+      var geoShape;
+      if (options.geo.type === 'circle') {
+        geoShape = cts.circle(options.geo.radius, cts.point(options.geo.points[
+          0], options.geo.points[1]))
+      }
+      if (options.geo.type === 'polygon') {
+        if (options.geo.points.constructor === Array) {
+          options.geo.points = options.geo.points.join(' ');
+        }
+        geoShape = cts.polygon(options.geo.points)
+      }
+      comboQuery.push(cts.jsonPropertyPairGeospatialQuery('geo', 'latitude',
+        'longitude', geoShape));
+    }
+    return comboQuery;
+  },
+  parseSearchOptions: function(options) {
+    var comboOptions = [];
+    if (!('sortOrder' in options)) {
+      options.sortOrder = 'ascending';
+    }
+    if ('sortType' in options) {
+      comboOptions.push(cts.indexOrder(cts.jsonPropertyReference(options.sortType, []),
+        options.sortOrder));
+    }
+    return comboOptions;
+  },
+  parseLimit: function(options) {
+    var limit = 1;
+    if ('limit' in options) {
+      limit = options.limit;
+    }
+    return limit;
+  }
+};
+Moses.Location = {
+  getLocationById: function(id) {
+    return cts.doc('/locations/' + id + '.json').root;
+  },
+  //In this, we grow and shrink by percentage rather than fixed mile radius because
+  //in the event we have 2 points close to each other and we grow the circle and then
+  //find none, we can shrink it by a smaller amount than previous (90% of 110 is more
+  //than 90% of 100, if we did it by fixed, we'd search at 100 then 110 then back to
+  //100 which would not resolve, so we fluctuate back and forth within .9, 
+  //then .91, then .92 etc of the 110 value where we found nothing).
+  //We cap it at 300 because we don't want to search forever, estimate is fast and
+  //starting at 1 mile, after 300 resizes we should hit something reasonably, falling
+  //back to the 'not found' or shortest distance method then to reduce strain on the
+  //server
+  findLocationByPoint: function(lat, lon) {
+    var count = 0;
+    var tries = 0;
+    var radius = 1;
+    var result;
+    while ((count > 1 || count < 1) && tries < 300) {
+      tries++;
+      count = cts.estimate(cts.jsonPropertyPairGeospatialQuery('geo',
+        'latitude', 'longitude', cts.circle(radius, cts.point(lat, lon))
+      ));
+      if (count < 1) {
+        //grow the value by 100% if we can't find anything
+        radius = radius * 2;
+      } else if (count > 1) {
+        //subtract the radius by 10% if we find more than 1
+        radius = radius * .9;
+      }
+    }
+    var results = cts.search(cts.jsonPropertyPairGeospatialQuery('geo',
+      'latitude', 'longitude', cts.circle(radius, cts.point(lat, lon)))).toArray();
+    if (results.length > 1) {
+      var distances = [];
+      for (var i = 0; i < results.length; i++) {
+        var longlat = results[i].toObject().geo;
+        var point = cts.point(longlat.latitude, longlat.longitude);
+        var distance = Moses.geo.distance(cts.point(lat, lon), point)
+        distances[i] = distance;
+      }
+      result = results[distances.indexOf(Math.min.apply(null, distances))];
+    } else if (results.length < 1) {
+      result = {};
+    } else {
+      result = results[0];
+    }
+    return result;
+  },
+  findLocationsByCircle: function(lat, lon, size) {
+    return cts.search(cts.jsonPropertyPairGeospatialQuery('geo', 'latitude',
+      'longitude', cts.circle(size, cts.point(lat, lon)))).toArray();
+  },
+  findLocationByPolygon: function(points) {
+    if (points.constructor === Array) {
+      points = points.join(' ');
+    }
+    return cts.search(cts.jsonPropertyPairGeospatialQuery('geo', 'latitude',
+      'longitude', cts.polygon(points))).toArray();
+  },
+  findLocations: function(options) {
+    var andQuery = Moses.QueryFilter.parseFilterOptions(options);
+    var searchOptions = Moses.QueryFilter.parseSearchOptions(options);
+    var limit = Moses.QueryFilter.parseLimit(options);
+    return fn.subsequence(cts.search(cts.andQuery(andQuery), searchOptions),
+      1, limit);
+  }
+};

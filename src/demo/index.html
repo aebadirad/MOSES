@@ -1,0 +1,118 @@
+<<!DOCTYPE html>
+    <html>
+
+    <head>
+        <title>MOSES Demo Application</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet" />
+        <link rel="stylesheet" href="css/leaflet.css" />
+        <link rel="stylesheet" href="css/leaflet.draw.css" />
+        <link rel="stylesheet" href="css/demo.css" />
+    </head>
+
+    <body>
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">MOSES</a>
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li class="active"><a href="#">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#contact">Docs</a></li>
+                    </ul>
+                </div>
+                <!--/.nav-collapse -->
+            </div>
+        </nav>
+        <div class="container">
+            <div class="starter-template">
+                <h1>MOSES Demo</h1>
+                <div id="mapid"></div>
+            </div>
+        </div>
+        <!-- /.container -->
+        <script src="js/leaflet.js"></script>
+        <script src="js/leaflet.draw.js"></script>
+        <script src="js/jquery-2.2.3.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <!--- this is where the demo JS is going to go for ease of learning -->
+        <script>
+        //setup stuff - map, leaflet
+        var map = L.map('mapid').setView([0, 0], 2);
+
+        //let's use some sweet ESRI maps to do this width
+        var streetMapUrl = 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+        var streetMapLayer = new L.TileLayer(streetMapUrl, {
+            maxZoom: 19,
+            attribution: 'Tiles: &copy; Esri'
+        });
+
+        //add layer to map
+        map.addLayer(streetMapLayer);
+
+        //drawing tools to do our neat geospatial querys
+        // Initialise the FeatureGroup to store editable layers
+
+        var editableLayers = new L.FeatureGroup();
+        map.addLayer(editableLayers);
+
+        // Initialise the draw control and pass it the FeatureGroup of editable layers
+        var options = {
+            position: 'topright',
+            draw: {
+                polyline: false,
+                polygon: {
+                    allowIntersection: false, // Restricts shapes to simple polygons
+                    drawError: {
+                        color: '#e1e100', // Color the shape will turn when intersects
+                        message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
+                    },
+                    shapeOptions: {
+                        color: '#bada55'
+                    }
+                },
+                circle: {
+                    shapeOptions: {
+                        clickable: false
+                    }
+                }, // Turns off this drawing tool
+                rectangle: {
+                    shapeOptions: {
+                        clickable: false
+                    }
+                },
+                marker: {}
+            },
+            edit: {
+                featureGroup: editableLayers //REQUIRED!!
+
+            }
+        };
+
+        var drawControl = new L.Control.Draw(options);
+        map.addControl(drawControl);
+
+        //now enable an event so we can draw something
+        map.on('draw:created', function(e) {
+            var type = e.layerType,
+                layer = e.layer;
+            if (editableLayers && editableLayers.getLayers().length !== 0) {
+                editableLayers.clearLayers();
+            }
+            if (type === 'marker') {
+                layer.bindPopup('A popup!');
+            }
+
+            editableLayers.addLayer(layer);
+        });
+        </script>
+    </body>
+
+    </html>

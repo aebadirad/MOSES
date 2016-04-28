@@ -1,0 +1,11 @@
+<rewriter xmlns="http://marklogic.com/xdmp/rewriter">
+	<match-path matches=".*\.sjs$">
+     <set-eval>eval</set-eval>
+ </match-path>
+    <match-method any-of="GET">
+      <match-path prefix="/test/">
+      	 <set-eval>eval</set-eval>
+         <dispatch>/api/test.sjs</dispatch>:
+      </match-path>
+   </match-method>
+</rewriter>

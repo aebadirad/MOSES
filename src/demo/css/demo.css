@@ -1,0 +1,13 @@
+body {
+  padding-top: 40px;
+}
+.starter-template {
+  padding: 10px 15px;
+  text-align: center;
+}
+
+#mapid { 
+	height: 380px; 
+	width: 70%; 
+	float: right;
+}

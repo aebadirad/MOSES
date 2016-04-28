@@ -1,0 +1,17 @@
+{
+  "name": "MOSES",
+  "version": "0.1.0",
+  "homepage": "http://github.com/aebadirad",
+  "author": "Alex Ebadirad",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aebadirad/MOSES"
+  },
+  "dependencies": {
+    "graceful-fs": "4.1.x",
+    "sanitize-filename": "1.0.1"
+  },
+  "engine": {  
+    "node": ">=0.10"  
+  }  
+}
