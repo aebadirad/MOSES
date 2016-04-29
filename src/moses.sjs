@@ -119,9 +119,21 @@ Moses.Feature = {
 };
 Moses.Country = {
   className: 'Country',
-  getAllCountries: function() {
+  getAllCountriesDetails: function() {
     return cts.search(cts.collectionQuery('country'), cts.indexOrder(cts.jsonPropertyReference(
       'country', []), 'ascending')).toArray();
+  },
+  getAllCountries: function() {
+    var countriesList = [];
+    var countries = cts.search(cts.collectionQuery('country'), cts.indexOrder(
+      cts.jsonPropertyReference('country', []), 'ascending')).toArray();
+    for (i = 0; i < countries.length; i++) {
+      countriesList.push({
+        name: countries[i].root.country,
+        iso: countries[i].root.iso
+      });
+    }
+    return countriesList;
   },
   getCountryByCode: function(code) {
     return cts.search(cts.andQuery([cts.collectionQuery('country'),
@@ -224,9 +236,23 @@ Moses.AdminCode = {
     ])).toArray()[0].root;
   },
   getNameByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.jsonPropertyRangeQuery('adminCode', '=', code)
+    ])).toArray()[0].root.asciiname;
+  },
+  getAdmin2CodesByCode: function(code) {
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+      cts.directoryQuery(["/admin-codes/" + code + '/'])
+    ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
+      "ascending")).toArray();
+  },
+  getAdmin3CodesByCode: function(admin1Code, admin2Code) {
       return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
-        cts.jsonPropertyRangeQuery('adminCode', '=', code)
-      ])).toArray()[0].root.asciiname;
+        cts.directoryQuery(["/admin-codes/" + admin1Code + '/' +
+          admin2Code + '/'
+        ])
+      ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
+        "ascending")).toArray();
     }
     //todo
     //child admin codes
@@ -251,6 +277,14 @@ Moses.QueryFilter = {
     if ('countryCode' in options) {
       comboQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=',
         options.countryCode));
+    }
+    if ('admin1Code' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', options
+        .admin1Code));
+    }
+    if ('admin2Code' in options) {
+      comboQuery.push(cts.jsonPropertyRangeQuery('admin2Code', '=', options
+        .admin2Code));
     }
     if ('population' in options) {
       comboQuery.push(cts.jsonPropertyRangeQuery('population', options.population
@@ -289,12 +323,15 @@ Moses.QueryFilter = {
   },
   parseSearchOptions: function(options) {
     var comboOptions = [];
+    var sortOrder = '';
     if (!('sortOrder' in options)) {
-      options.sortOrder = 'ascending';
+      sortOrder = 'ascending';
+    }else{
+      sortOrder = options.sortOrder;
     }
     if ('sortType' in options) {
       comboOptions.push(cts.indexOrder(cts.jsonPropertyReference(options.sortType, []),
-        options.sortOrder));
+        sortOrder));
     }
     return comboOptions;
   },

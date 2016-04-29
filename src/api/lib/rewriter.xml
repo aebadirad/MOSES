@@ -25,10 +25,21 @@
             <set-eval>eval</set-eval>
             <dispatch>/api/adminCode.sjs</dispatch>
         </match-path>
-         <match-path prefix="/api/country/all">
+        <match-path prefix="/api/country/all">
             <set-eval>eval</set-eval>
-             <add-query-param name="function">getAllCountries</add-query-param>
+            <add-query-param name="function">getAllCountries</add-query-param>
             <dispatch>/api/country.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/country/details/all">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">getAllCountriesDetails</add-query-param>
+        	<dispatch>/api/country.sjs</dispatch>
+        </match-path>
+        <match-path matches="/api/country/details/([A-Z]{2}$)">
+            <set-eval>eval</set-eval>
+            <add-query-param name="code">$1</add-query-param>
+            <add-query-param name="function">getCountryByCode</add-query-param>
+        	<dispatch>/api/country.sjs</dispatch>
         </match-path>
         <match-path prefix="/api/country">
             <set-eval>eval</set-eval>
@@ -67,5 +78,15 @@
         </match-path>
     </match-method>
     <match-method any-of="POST">
+    	 <match-path prefix="/api/search/geo">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">findLocationByPoint</add-query-param>
+            <dispatch>/api/search.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/search">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">findLocations</add-query-param>
+            <dispatch>/api/search.sjs</dispatch>
+        </match-path>
     </match-method>
 </rewriter>
