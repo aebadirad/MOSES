@@ -1,11 +1,71 @@
 <rewriter xmlns="http://marklogic.com/xdmp/rewriter">
-	<match-path matches=".*\.sjs$">
-     <set-eval>eval</set-eval>
- </match-path>
+    <match-path matches=".*\.sjs$">
+        <set-eval>eval</set-eval>
+    </match-path>
     <match-method any-of="GET">
-      <match-path prefix="/test/">
-      	 <set-eval>eval</set-eval>
-         <dispatch>/api/test.sjs</dispatch>:
-      </match-path>
-   </match-method>
+    	<match-path matches="^/api/admincode/all">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">getAdmin1Codes</add-query-param>
+            <dispatch>/api/adminCode.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/admincode/([A-Z]{2}$)">
+            <set-eval>eval</set-eval>
+            <add-query-param name="admin1Code">$1</add-query-param>
+            <add-query-param name="function">getAdmin2Codes</add-query-param>
+            <dispatch>/api/adminCode.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/admincode/([A-Z]{2})/([A-Z0-9]+$)">
+            <set-eval>eval</set-eval>
+            <add-query-param name="admin1Code">$1</add-query-param>
+            <add-query-param name="admin2Code">$2</add-query-param>
+            <add-query-param name="function">getAdmin3Codes</add-query-param>
+            <dispatch>/api/adminCode.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/admincode">
+            <set-eval>eval</set-eval>
+            <dispatch>/api/adminCode.sjs</dispatch>
+        </match-path>
+         <match-path prefix="/api/country/all">
+            <set-eval>eval</set-eval>
+             <add-query-param name="function">getAllCountries</add-query-param>
+            <dispatch>/api/country.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/country">
+            <set-eval>eval</set-eval>
+            <dispatch>/api/country.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/feature/class/all">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">allClasses</add-query-param>
+            <dispatch>/api/feature.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/feature/class/([A-Z])">
+            <set-eval>eval</set-eval>
+            <add-query-param name="featureClass">$1</add-query-param>
+            <add-query-param name="function">getFeatureByClass</add-query-param>
+            <dispatch>/api/feature.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/feature">
+            <set-eval>eval</set-eval>
+            <dispatch>/api/feature.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/search/([0-9]+)">
+            <set-eval>eval</set-eval>
+            <add-query-param name="id">$1</add-query-param>
+            <add-query-param name="function">getLocationById</add-query-param>
+            <dispatch>/api/search.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/search/details/([0-9]+)">
+            <set-eval>eval</set-eval>
+            <add-query-param name="id">$1</add-query-param>
+            <add-query-param name="function">getLocationByIdDetails</add-query-param>
+            <dispatch>/api/search.sjs</dispatch>
+        </match-path>
+        <match-path matches="^/api/search">
+            <set-eval>eval</set-eval>
+            <dispatch>/api/search.sjs</dispatch>
+        </match-path>
+    </match-method>
+    <match-method any-of="POST">
+    </match-method>
 </rewriter>

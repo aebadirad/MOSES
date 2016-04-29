@@ -53,6 +53,44 @@ Moses.Feature = {
     return cts.elementValues(xs.QName('featureClass'), '', [], cts.collectionQuery(
       'feature-code')).toArray();
   },
+  getFeatureClassNameByCode: function(featureClass) {
+    var result = Moses.Feature.getAllFeatureClassesIndex().filter(function(
+      obj) {
+      return obj.featureClass === featureClass;
+    });
+    return result;
+  },
+  getAllFeatureClassesIndex: function() {
+    var staticClasses = [{
+      FeatureClass: 'A',
+      name: 'Administrative Boundary Features'
+    }, {
+      featureClass: 'H',
+      name: 'Hydrographic Features'
+    }, {
+      featureClass: 'L',
+      name: 'Area Features'
+    }, {
+      featureClass: 'P',
+      name: 'Populated Place Features'
+    }, {
+      featureClass: 'R',
+      name: 'Road / Railroad Features'
+    }, {
+      featureClass: 'S',
+      name: 'Spot Features'
+    }, {
+      featureClass: 'T',
+      name: 'Hypsographic Features'
+    }, {
+      featureClass: 'U',
+      name: 'Undersea Features'
+    }, {
+      featureClass: 'V',
+      name: 'Vegetation Features'
+    }];
+    return staticClasses;
+  },
   getAllFeatureCodes: function() {
     var features = {};
     var featureClasses = this.getAllFeatureClasses();
@@ -81,6 +119,10 @@ Moses.Feature = {
 };
 Moses.Country = {
   className: 'Country',
+  getAllCountries: function() {
+    return cts.search(cts.collectionQuery('country'), cts.indexOrder(cts.jsonPropertyReference(
+      'country', []), 'ascending')).toArray();
+  },
   getCountryByCode: function(code) {
     return cts.search(cts.andQuery([cts.collectionQuery('country'),
       cts.jsonPropertyRangeQuery('iso', '=', code)
@@ -262,11 +304,48 @@ Moses.QueryFilter = {
       limit = options.limit;
     }
     return limit;
+  },
+  translateAdminCodes: function(results) {
+    var docs = results;
+    var translatedDocs = [];
+    for (i = 0; i < docs.length; i++) {
+      var fullDoc = docs[i].toObject();
+      fullDoc.country = Moses.Country.getCountryNameByCode(docs[i].root.countryCode);
+      if (fullDoc.admin1Code) {
+        fullDoc.province = Moses.AdminCode.getNameByCode(docs[i].root.countryCode +
+          '.' + docs[i].root.admin1Code);
+      }
+      if (fullDoc.admin2Code) {
+        fullDoc.district = Moses.AdminCode.getNameByCode(docs[i].root.countryCode +
+          '.' + docs[i].root.admin1Code + '.' + docs[i].root.admin2Code);
+      }
+      if (fullDoc.featureCode) {
+        fullDoc.featureName = Moses.Feature.getFeatureNameByPair(fullDoc.featureClass,
+          fullDoc.featureCode);
+      }
+      translatedDocs.push(fullDoc);
+    }
+    if (translatedDocs.length === 1) {
+      translatedDocs = translatedDocs[0];
+    }
+    return translatedDocs;
   }
 };
 Moses.Location = {
   getLocationById: function(id) {
-    return cts.doc('/locations/' + id + '.json').root;
+    var doc = cts.doc('/locations/' + id + '.json');
+    if (doc) {
+      doc = doc.root.toObject();
+    }
+    return doc;
+  },
+  getLocationByIdDetails: function(id) {
+    var doc = cts.doc('/locations/' + id + '.json');
+    var fullDoc;
+    if (doc) {
+      fullDoc = Moses.QueryFilter.translateAdminCodes([doc]);
+    }
+    return fullDoc;
   },
   //In this, we grow and shrink by percentage rather than fixed mile radius because
   //in the event we have 2 points close to each other and we grow the circle and then
@@ -278,16 +357,17 @@ Moses.Location = {
   //starting at 1 mile, after 300 resizes we should hit something reasonably, falling
   //back to the 'not found' or shortest distance method then to reduce strain on the
   //server
-  findLocationByPoint: function(lat, lon) {
+  findLocationByPoint: function(lat, lon, options) {
     var count = 0;
     var tries = 0;
     var radius = 1;
     var result;
-    while ((count > 1 || count < 1) && tries < 300) {
+    var andQuery = Moses.QueryFilter.parseFilterOptions(options);
+    while ((count > 1 || count < 1) && tries < 200 && radius < 25000) {
       tries++;
-      count = cts.estimate(cts.jsonPropertyPairGeospatialQuery('geo',
-        'latitude', 'longitude', cts.circle(radius, cts.point(lat, lon))
-      ));
+      count = cts.estimate(cts.andQuery([cts.jsonPropertyPairGeospatialQuery(
+        'geo', 'latitude', 'longitude', cts.circle(radius, cts.point(
+          lat, lon))), cts.andQuery(andQuery)]));
       if (count < 1) {
         //grow the value by 100% if we can't find anything
         radius = radius * 2;
@@ -296,8 +376,9 @@ Moses.Location = {
         radius = radius * .9;
       }
     }
-    var results = cts.search(cts.jsonPropertyPairGeospatialQuery('geo',
-      'latitude', 'longitude', cts.circle(radius, cts.point(lat, lon)))).toArray();
+    var results = cts.search(cts.andQuery([cts.jsonPropertyPairGeospatialQuery(
+      'geo', 'latitude', 'longitude', cts.circle(radius, cts.point(
+        lat, lon))), cts.andQuery(andQuery)])).toArray();
     if (results.length > 1) {
       var distances = [];
       for (var i = 0; i < results.length; i++) {
@@ -333,3 +414,4 @@ Moses.Location = {
       1, limit);
   }
 };
+module.exports = Moses;
