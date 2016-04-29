@@ -34,6 +34,30 @@
         <div class="container">
             <div class="starter-template">
                 <h1>MOSES Demo</h1>
+                <div id="search">
+                    <form id="search-form">
+                        <div class="search-row">
+                            <div class="input-group">
+                                <span class="input-group-addon" id="basic-addon3">Name</span>
+                                <input type="text" class="form-control" id="basic-url" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
+                            </div>
+                            <div class="input-group">
+                                <select id='fuzzy' class="selectpicker">
+                                    <option value="false" selected>Fuzzy Name Search Off</option>
+                                    <option value="true">Fuzzy Name Search On</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Country Filter</label>
+                            <div class="input-group">
+                                <select id='countryCode' class="selectpicker">
+                                    <option value disabled selected>Select Country</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
                 <div id="mapid"></div>
             </div>
         </div>
@@ -42,11 +66,11 @@
         <script src="js/leaflet.draw.js"></script>
         <script src="js/jquery-2.2.3.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
-        <!--- this is where the demo JS is going to go for ease of learning -->
+        <script src="js/main.js"></script>
+        <!--- this is where the initial map creation is going to keep it out -->
         <script>
         //setup stuff - map, leaflet
         var map = L.map('mapid').setView([0, 0], 2);
-
         //let's use some sweet ESRI maps to do this width
         var streetMapUrl = 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
         var streetMapLayer = new L.TileLayer(streetMapUrl, {
@@ -81,13 +105,11 @@
                 circle: {
                     shapeOptions: {
                         clickable: false
-                    }
+                    },
+                    showRadius: true,
+                    metric: false
                 }, // Turns off this drawing tool
-                rectangle: {
-                    shapeOptions: {
-                        clickable: false
-                    }
-                },
+                rectangle: false,
                 marker: {}
             },
             edit: {
@@ -107,10 +129,41 @@
                 editableLayers.clearLayers();
             }
             if (type === 'marker') {
-                layer.bindPopup('A popup!');
+                window.geo = {
+                    type: 'point',
+                    points: layer.getLatLng()
+                };
+                window.geo.points.lat = window.geo.points.lat.toFixed(5);
+                window.geo.points.lng = window.geo.points.lng.toFixed(5);
+                layer.bindPopup('<p><strong>Lat:</strong> ' + window.geo.points.lat + '<br /> <strong>Lon:</strong> ' + window.geo.points.lng + '</p>');
+            }
+            if (type === 'circle') {
+                window.geo = {
+                    type: 'circle',
+                    radius: ((layer.getRadius()) * (0.000621371)),
+                    points: layer.getLatLng()
+                };
             }
 
+            if (type === 'polygon') {
+                coordinates = [];
+                latlngs = layer.getLatLngs();
+                for (var i = 0; i < latlngs.length; i++) {
+                    coordinates.push([latlngs[i].lng, latlngs[i].lat])
+                }
+
+                window.geo = {
+                    type: 'polygon',
+                    points: coordinates
+                };
+            }
+
+
             editableLayers.addLayer(layer);
+        });
+
+        $(document).ready(function() {
+            //$("#fuzzy").bootstrapSwitch();
         });
         </script>
     </body>

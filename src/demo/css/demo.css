@@ -8,6 +8,21 @@ body {
 
 #mapid { 
 	height: 380px; 
-	width: 70%; 
+	width: 65%;
 	float: right;
+}
+
+#search { 
+	height: 380px; 
+	width: 34%;
+	float: left;
+}
+
+.search-row {
+	margin-bottom: 5px;
+}
+
+.search-row > label {
+	float: left;
+	margin-right: 10px;
 }

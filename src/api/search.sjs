@@ -8,7 +8,7 @@ var Utils = require('lib/utils.sjs')
 	//let's grab our request field variables so we can see what's being requested
 var searchFunction = xdmp.getRequestField("function");
 var geonameid = xdmp.getRequestField("id");
-var options = xdmp.getRequestBody().toObject();
+var options = xdmp.getRequestBody();
 var lat = xdmp.getRequestField("lat");
 var lon = xdmp.getRequestField("lon");
 
@@ -17,7 +17,9 @@ if (geonameid && searchFunction === 'getLocationById') {
 } else if (geonameid && searchFunction === 'getLocationByIdDetails') {
 	Moses.Location.getLocationByIdDetails(geonameid);
 } else if (options && searchFunction === 'findLocations') {
+	options = options.toObject();
 	Moses.Location.findLocations(options);
 } else if (options && lat && lon && searchFunction === 'findLocationByPoint') {
+	options = options.toObject();
 	Moses.Location.findLocationByPoint(lat, lon, options);
 }
