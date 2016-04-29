@@ -1,171 +1,234 @@
-<<!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
 
-    <head>
-        <title>MOSES Demo Application</title>
-        <link href="css/bootstrap.min.css" rel="stylesheet" />
-        <link rel="stylesheet" href="css/leaflet.css" />
-        <link rel="stylesheet" href="css/leaflet.draw.css" />
-        <link rel="stylesheet" href="css/demo.css" />
-    </head>
+<head>
+    <title>MOSES Demo Application</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <link rel="stylesheet" href="css/leaflet.draw.css" />
+    <link rel="stylesheet" href="css/demo.css" />
+</head>
 
-    <body>
-        <nav class="navbar navbar-inverse navbar-fixed-top">
-            <div class="container">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="#">MOSES</a>
-                </div>
-                <div id="navbar" class="collapse navbar-collapse">
-                    <ul class="nav navbar-nav">
-                        <li class="active"><a href="#">Home</a></li>
-                        <li><a href="#about">About</a></li>
-                        <li><a href="#contact">Docs</a></li>
-                    </ul>
-                </div>
-                <!--/.nav-collapse -->
-            </div>
-        </nav>
+<body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
-            <div class="starter-template">
-                <h1>MOSES Demo</h1>
-                <div id="search">
-                    <form id="search-form">
-                        <div class="search-row">
-                            <div class="input-group">
-                                <span class="input-group-addon" id="basic-addon3">Name</span>
-                                <input type="text" class="form-control" id="basic-url" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
-                            </div>
-                            <div class="input-group">
-                                <select id='fuzzy' class="selectpicker">
-                                    <option value="false" selected>Fuzzy Name Search Off</option>
-                                    <option value="true">Fuzzy Name Search On</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="search-row">
-                            <label>Country Filter</label>
-                            <div class="input-group">
-                                <select id='countryCode' class="selectpicker">
-                                    <option value disabled selected>Select Country</option>
-                                </select>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div id="mapid"></div>
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">MOSES</a>
             </div>
+            <div id="navbar" class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li class="active"><a href="#">Home</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Docs</a></li>
+                </ul>
+            </div>
+            <!--/.nav-collapse -->
         </div>
-        <!-- /.container -->
-        <script src="js/leaflet.js"></script>
-        <script src="js/leaflet.draw.js"></script>
-        <script src="js/jquery-2.2.3.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/main.js"></script>
-        <!--- this is where the initial map creation is going to keep it out -->
-        <script>
-        //setup stuff - map, leaflet
-        var map = L.map('mapid').setView([0, 0], 2);
-        //let's use some sweet ESRI maps to do this width
-        var streetMapUrl = 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
-        var streetMapLayer = new L.TileLayer(streetMapUrl, {
-            maxZoom: 19,
-            attribution: 'Tiles: &copy; Esri'
-        });
+    </nav>
+    <div class="container">
+        <div class="starter-template">
+            <h1>MOSES Demo</h1>
+            <div id="search">
+                <form id="search-form">
+                    <div class="search-row">
+                        <div class="input-group">
+                            <span class="input-group-addon" id="basic-addon3">Name</span>
+                            <input type="text" class="form-control" id="basic-url" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
+                        </div>
+                        <div class="input-group">
+                            <select id='fuzzy' class="selectpicker">
+                                <option value="false" selected>Fuzzy Name Search Off</option>
+                                <option value="true">Fuzzy Name Search On</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Population</label>
+                        <div class="input-group">
+                            <select id='population-inequality' class="selectpicker" style="float: left;">
+                                <option value="<" selected>More Than</option>
+                                <option value=">">Less Than</option>
+                            </select>
+                            <input type="text" class="form-control" id="population-amount" pattern="[0-9]" placeholder="Example 0 or 50000">
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Feature Class</label>
+                        <div class="input-group">
+                            <select id='featureClass' class="selectpicker">
+                                <option value="" selected>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Sub Class</label>
+                        <div class="input-group">
+                            <select id='featureCode' class="selectpicker">
+                                <option value="" selected>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Country</label>
+                        <div class="input-group">
+                            <select id='countryCode' class="selectpicker">
+                                <option value="" selected>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Province</label>
+                        <div class="input-group">
+                            <select id='admin1Code' class="selectpicker">
+                                <option value="" selected>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>District</label>
+                        <div class="input-group">
+                            <select id='admin2Code' class="selectpicker">
+                                <option value="" selected>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <label>Max Results</label>
+                        <div class="input-group">
+                            <select id='limit' class="selectpicker">
+                                <option value="">All</option>
+                                <option value="1" selected>1</option>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="search-row submit-row">
+                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!">
+                            <span class="glyphicon glyphicon-search"></span> Find Locations
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div id="mapid"></div>
+        </div>
+    </div>
+    <!-- /.container -->
+    <script src="js/leaflet.js"></script>
+    <script src="js/leaflet.draw.js"></script>
+    <script src="js/jquery-2.2.3.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/main.js"></script>
+    <!--- this is where the initial map creation is going to keep it out -->
+    <script>
+    //setup stuff - map, leaflet
+    var map = L.map('mapid').setView([0, 0], 2);
+    //let's use some sweet ESRI maps to do this width
+    var streetMapUrl = 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+    var streetMapLayer = new L.TileLayer(streetMapUrl, {
+        maxZoom: 19,
+        attribution: 'Tiles: &copy; Esri'
+    });
 
-        //add layer to map
-        map.addLayer(streetMapLayer);
+    //add layer to map
+    map.addLayer(streetMapLayer);
 
-        //drawing tools to do our neat geospatial querys
-        // Initialise the FeatureGroup to store editable layers
+    //drawing tools to do our neat geospatial querys
+    // Initialise the FeatureGroup to store editable layers
 
-        var editableLayers = new L.FeatureGroup();
-        map.addLayer(editableLayers);
+    var editableLayers = new L.FeatureGroup();
+    map.addLayer(editableLayers);
 
-        // Initialise the draw control and pass it the FeatureGroup of editable layers
-        var options = {
-            position: 'topright',
-            draw: {
-                polyline: false,
-                polygon: {
-                    allowIntersection: false, // Restricts shapes to simple polygons
-                    drawError: {
-                        color: '#e1e100', // Color the shape will turn when intersects
-                        message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
-                    },
-                    shapeOptions: {
-                        color: '#bada55'
-                    }
+    // Initialise the draw control and pass it the FeatureGroup of editable layers
+    var options = {
+        position: 'topright',
+        draw: {
+            polyline: false,
+            polygon: {
+                allowIntersection: false, // Restricts shapes to simple polygons
+                drawError: {
+                    color: '#e1e100', // Color the shape will turn when intersects
+                    message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
                 },
-                circle: {
-                    shapeOptions: {
-                        clickable: false
-                    },
-                    showRadius: true,
-                    metric: false
-                }, // Turns off this drawing tool
-                rectangle: false,
-                marker: {}
-            },
-            edit: {
-                featureGroup: editableLayers //REQUIRED!!
-
-            }
-        };
-
-        var drawControl = new L.Control.Draw(options);
-        map.addControl(drawControl);
-
-        //now enable an event so we can draw something
-        map.on('draw:created', function(e) {
-            var type = e.layerType,
-                layer = e.layer;
-            if (editableLayers && editableLayers.getLayers().length !== 0) {
-                editableLayers.clearLayers();
-            }
-            if (type === 'marker') {
-                window.geo = {
-                    type: 'point',
-                    points: layer.getLatLng()
-                };
-                window.geo.points.lat = window.geo.points.lat.toFixed(5);
-                window.geo.points.lng = window.geo.points.lng.toFixed(5);
-                layer.bindPopup('<p><strong>Lat:</strong> ' + window.geo.points.lat + '<br /> <strong>Lon:</strong> ' + window.geo.points.lng + '</p>');
-            }
-            if (type === 'circle') {
-                window.geo = {
-                    type: 'circle',
-                    radius: ((layer.getRadius()) * (0.000621371)),
-                    points: layer.getLatLng()
-                };
-            }
-
-            if (type === 'polygon') {
-                coordinates = [];
-                latlngs = layer.getLatLngs();
-                for (var i = 0; i < latlngs.length; i++) {
-                    coordinates.push([latlngs[i].lng, latlngs[i].lat])
+                shapeOptions: {
+                    color: '#bada55'
                 }
+            },
+            circle: {
+                shapeOptions: {
+                    clickable: false
+                },
+                showRadius: true,
+                metric: false
+            }, // Turns off this drawing tool
+            rectangle: false,
+            marker: {}
+        },
+        edit: {
+            featureGroup: editableLayers //REQUIRED!!
 
-                window.geo = {
-                    type: 'polygon',
-                    points: coordinates
-                };
+        }
+    };
+
+    var drawControl = new L.Control.Draw(options);
+    map.addControl(drawControl);
+
+    //now enable an event so we can draw something
+    map.on('draw:created', function(e) {
+        var type = e.layerType,
+            layer = e.layer;
+        if (editableLayers && editableLayers.getLayers().length !== 0) {
+            editableLayers.clearLayers();
+        }
+        if (type === 'marker') {
+            window.geo = {
+                type: 'point',
+                points: layer.getLatLng()
+            };
+            window.geo.points.lat = window.geo.points.lat.toFixed(5);
+            window.geo.points.lng = window.geo.points.lng.toFixed(5);
+            layer.bindPopup('<p><strong>Lat:</strong> ' + window.geo.points.lat + '<br /> <strong>Lon:</strong> ' + window.geo.points.lng + '</p>');
+        }
+        if (type === 'circle') {
+            window.geo = {
+                type: 'circle',
+                radius: ((layer.getRadius()) * (0.000621371)),
+                points: layer.getLatLng()
+            };
+        }
+
+        if (type === 'polygon') {
+            coordinates = [];
+            latlngs = layer.getLatLngs();
+            for (var i = 0; i < latlngs.length; i++) {
+                coordinates.push([latlngs[i].lng, latlngs[i].lat])
             }
 
+            window.geo = {
+                type: 'polygon',
+                points: coordinates
+            };
+        }
 
-            editableLayers.addLayer(layer);
+
+        editableLayers.addLayer(layer);
+    });
+
+    $(document).ready(function() {
+        $("#population-amount").keypress(function(e) {
+            if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
+                return false;
+            }
         });
+    });
+    </script>
+</body>
 
-        $(document).ready(function() {
-            //$("#fuzzy").bootstrapSwitch();
-        });
-        </script>
-    </body>
-
-    </html>
+</html>
