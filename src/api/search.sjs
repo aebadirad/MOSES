@@ -11,15 +11,16 @@ var geonameid = xdmp.getRequestField("id");
 var options = xdmp.getRequestBody();
 var lat = xdmp.getRequestField("lat");
 var lon = xdmp.getRequestField("lon");
-
 if (geonameid && searchFunction === 'getLocationById') {
 	Moses.Location.getLocationById(geonameid);
 } else if (geonameid && searchFunction === 'getLocationByIdDetails') {
 	Moses.Location.getLocationByIdDetails(geonameid);
 } else if (options && searchFunction === 'findLocations') {
 	options = options.toObject();
-	Moses.Location.findLocations(options);
-} else if (options && lat && lon && searchFunction === 'findLocationByPoint') {
+	//grab results so we can look up some more information on them
+	var result = Moses.Location.findLocations(options.options);
+	Moses.QueryFilter.translateFullResult(result);
+} else if (options && searchFunction === 'findLocationByPoint') {
 	options = options.toObject();
-	Moses.Location.findLocationByPoint(lat, lon, options);
+	Moses.Location.findLocationByPoint(options.lat, options.lon, options.options);
 }

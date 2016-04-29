@@ -39,11 +39,11 @@
                     <div class="search-row">
                         <div class="input-group">
                             <span class="input-group-addon" id="basic-addon3">Name</span>
-                            <input type="text" class="form-control" id="basic-url" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
+                            <input type="text" class="form-control" id="name" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
                         </div>
                         <div class="input-group">
                             <select id='fuzzy' class="selectpicker">
-                                <option value="false" selected>Fuzzy Name Search Off</option>
+                                <option value="" selected>Fuzzy Name Search Off</option>
                                 <option value="true">Fuzzy Name Search On</option>
                             </select>
                         </div>
@@ -52,8 +52,8 @@
                         <label>Population</label>
                         <div class="input-group">
                             <select id='population-inequality' class="selectpicker" style="float: left;">
-                                <option value="<" selected>More Than</option>
-                                <option value=">">Less Than</option>
+                                <option value=">" selected>More Than</option>
+                                <option value="<">Less Than</option>
                             </select>
                             <input type="text" class="form-control" id="population-amount" pattern="[0-9]" placeholder="Example 0 or 50000">
                         </div>
@@ -66,11 +66,11 @@
                             </select>
                         </div>
                     </div>
-                    <div class="search-row">
+                    <div class="search-row" id="featureCode-div">
                         <label>Sub Class</label>
                         <div class="input-group">
                             <select id='featureCode' class="selectpicker">
-                                <option value="" selected>All</option>
+                                <option value="" selected>Select a class first</option>
                             </select>
                         </div>
                     </div>
@@ -82,19 +82,19 @@
                             </select>
                         </div>
                     </div>
-                    <div class="search-row">
+                    <div class="search-row" id="admin1Code-div">
                         <label>Province</label>
                         <div class="input-group">
                             <select id='admin1Code' class="selectpicker">
-                                <option value="" selected>All</option>
+                                <option value="" selected>Select a country first</option>
                             </select>
                         </div>
                     </div>
-                    <div class="search-row">
+                    <div class="search-row" id="admin2Code-div">
                         <label>District</label>
                         <div class="input-group">
                             <select id='admin2Code' class="selectpicker">
-                                <option value="" selected>All</option>
+                                <option value="" selected>Select a province first</option>
                             </select>
                         </div>
                     </div>
@@ -110,14 +110,37 @@
                             </select>
                         </div>
                     </div>
+                     <div class="search-row">
+                        <label>Sort By</label>
+                        <div class="input-group">
+                            <select id='sortType' class="selectpicker">
+                                <option value="asciiname" selected>Name</option>
+                                <option value="population">Population</option>
+                                <option value="featureClass">Feature Class</option>
+                                <option value="countryCode">Country</option>
+                            </select>
+                        </div>
+                    </div>
+                     <div class="search-row">
+                        <label>Sort Order</label>
+                        <div class="input-group">
+                            <select id='sortOrder' class="selectpicker">
+                                <option value="ascending" selected>Ascending</option>
+                                <option value="descending">descending</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="search-row submit-row">
-                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!">
+                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="submitButton">
                             <span class="glyphicon glyphicon-search"></span> Find Locations
                         </button>
                     </div>
                 </form>
             </div>
             <div id="mapid"></div>
+        </div>
+        <div id="results">
+        <table class="table table-hover table-striped" id="results-table"></table>
         </div>
     </div>
     <!-- /.container -->
@@ -145,6 +168,8 @@
 
     var editableLayers = new L.FeatureGroup();
     map.addLayer(editableLayers);
+
+    var markers = new L.FeatureGroup();
 
     // Initialise the draw control and pass it the FeatureGroup of editable layers
     var options = {
@@ -199,7 +224,7 @@
         if (type === 'circle') {
             window.geo = {
                 type: 'circle',
-                radius: ((layer.getRadius()) * (0.000621371)),
+                radius: ((layer.getRadius()) * (0.000621371)).toFixed(5),
                 points: layer.getLatLng()
             };
         }
@@ -208,7 +233,7 @@
             coordinates = [];
             latlngs = layer.getLatLngs();
             for (var i = 0; i < latlngs.length; i++) {
-                coordinates.push([latlngs[i].lng, latlngs[i].lat])
+                coordinates.push([latlngs[i].lng.toFixed(5), latlngs[i].lat].toFixed(5))
             }
 
             window.geo = {
@@ -226,6 +251,46 @@
             if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
                 return false;
             }
+        });
+
+        //load up our list of countries
+        getCountries();
+        getFeatureClass();
+
+        //monitor our initial select boxes for change
+        $('#countryCode').change(function(e) {
+            if (e.target.value !== '' && e.target.value !== null) {
+                getProvince(e.target.value);
+                $('#admin1Code').parent().parent().slideDown();
+            } else {
+                $('#admin1Code').html('<option value="">Select a country first</option>').parent().parent().slideUp();
+                $('#admin2Code').html('<option value="">Select a province first</option>').parent().parent().slideUp();
+            }
+        });
+
+        //monitor our initial select boxes for change
+        $('#admin1Code').change(function(e) {
+            if (e.target.value !== '' && e.target.value !== null) {
+                getDistrict($('#countryCode').val(), e.target.value.split('.')[1]);
+                $('#admin2Code').parent().parent().slideDown();
+            } else {
+                $('#admin2Code').html('<option value="">Select a province first</option>').parent().parent().slideUp();
+            }
+        });
+
+        //monitor our initial select boxes for change
+        $('#featureClass').change(function(e) {
+            if (e.target.value !== '' && e.target.value !== null) {
+                getFeatureCode(e.target.value);
+                $('#featureCode').parent().parent().slideDown();
+            } else {
+                $('#featureCode').html('<option value="">Select a class first</option>').parent().parent().slideUp();
+            }
+        });
+
+        //our submit button observer for clicks
+        $('#submitButton').click(function() {
+                submitData();
         });
     });
     </script>

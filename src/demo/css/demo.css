@@ -32,7 +32,18 @@ body {
 }
 
 .submit-row {
-    position: absolute;
-    bottom: 0;
+
     text-align: center;
+}
+
+#featureCode-div {
+	display: none;
+}
+
+#admin1Code-div {
+	display: none;
+}
+
+#admin2Code-div {
+	display: none;
 }

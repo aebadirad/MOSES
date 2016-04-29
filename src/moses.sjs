@@ -18,7 +18,8 @@ Moses.Feature = {
   getFeatureByClass: function(featureClass) {
     return cts.search(cts.andQuery([cts.collectionQuery('feature-code'),
       cts.jsonPropertyRangeQuery('featureClass', '=', featureClass)
-    ])).toArray();
+    ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
+      'ascending')).toArray();
   },
   getFeatureByFullCode: function(fullCode) {
     fullCode = fullCode.split('.');
@@ -62,7 +63,7 @@ Moses.Feature = {
   },
   getAllFeatureClassesIndex: function() {
     var staticClasses = [{
-      FeatureClass: 'A',
+      featureClass: 'A',
       name: 'Administrative Boundary Features'
     }, {
       featureClass: 'H',
@@ -236,9 +237,12 @@ Moses.AdminCode = {
     ])).toArray()[0].root;
   },
   getNameByCode: function(code) {
-    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+    var result = cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
       cts.jsonPropertyRangeQuery('adminCode', '=', code)
-    ])).toArray()[0].root.asciiname;
+    ])).toArray()[0];
+    if (result) {
+      result.root.name;
+    }
   },
   getAdmin2CodesByCode: function(code) {
     return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
@@ -266,55 +270,58 @@ Moses.AdminCode = {
 Moses.QueryFilter = {
   parseFilterOptions: function(options) {
     var comboQuery = [cts.directoryQuery('/locations/')];
-    if ('featureClass' in options) {
-      comboQuery.push(cts.jsonPropertyRangeQuery('featureClass', '=',
-        options.featureClass));
+    if ('featureClass' in options && options.featureClass) {
+      comboQuery.push(cts.jsonPropertyValueQuery('featureClass', options.featureClass,
+        'exact'));
     }
-    if ('featureCode' in options) {
-      comboQuery.push(cts.jsonPropertyRangeQuery('featureCode', '=',
-        options.featureCode));
+    if ('featureCode' in options && options.featureCode) {
+      comboQuery.push(cts.jsonPropertyValueQuery('featureCode', options.featureCode,
+        'exact'));
     }
-    if ('countryCode' in options) {
-      comboQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=',
-        options.countryCode));
+    if ('countryCode' in options && options.countryCode) {
+      comboQuery.push(cts.jsonPropertyValueQuery('countryCode', options.countryCode,
+        'exact'));
     }
-    if ('admin1Code' in options) {
-      comboQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', options
-        .admin1Code));
+    if ('admin1Code' in options && options.admin1Code) {
+      comboQuery.push(cts.jsonPropertyValueQuery('admin1Code', options.admin1Code,
+        'exact'));
     }
-    if ('admin2Code' in options) {
-      comboQuery.push(cts.jsonPropertyRangeQuery('admin2Code', '=', options
-        .admin2Code));
+    if ('admin2Code' in options && options.admin2Code) {
+      comboQuery.push(cts.jsonPropertyValueQuery('admin2Code', options.admin2Code,
+        'exact'));
     }
-    if ('population' in options) {
+    if ('population' in options && options.population) {
       comboQuery.push(cts.jsonPropertyRangeQuery('population', options.population
         .inequality, options.population.amount));
     }
-    if ('name' in options && !('fuzzy' in options)) {
+    if ('name' in options && 'fuzzy' in options && !options.fuzzy &&
+      options.name) {
       comboQuery.push(cts.jsonPropertyValueQuery(['asciiname', 'name'],
         options.name, ['case-insensitive', 'diacritic-insensitive',
           'punctuation-insensitive', 'whitespace-sensitive',
           'unwildcarded'
         ]));
     }
-    if ('name' in options && 'fuzzy' in options) {
+    if ('name' in options && 'fuzzy' in options && options.name && options.fuzzy) {
       comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name'],
         options.name, ['case-insensitive', 'diacritic-insensitive',
           'punctuation-insensitive', 'whitespace-insensitive',
           'wildcarded'
         ]));
     }
-    if ('geo' in options) {
+    if ('geo' in options && options.geo) {
       var geoShape;
       if (options.geo.type === 'circle') {
         geoShape = cts.circle(options.geo.radius, cts.point(options.geo.points[
           0], options.geo.points[1]))
       }
       if (options.geo.type === 'polygon') {
-        if (options.geo.points.constructor === Array) {
-          options.geo.points = options.geo.points.join(' ');
+        var polygonPoints = [];
+        for (i = 0; i < options.geo.points.length; i++) {
+          polygonPoints.push(cts.point(options.geo.points[i][0]), options.geo
+            .points[i][1]);
         }
-        geoShape = cts.polygon(options.geo.points)
+        geoShape = cts.polygon(polygonPoints);
       }
       comboQuery.push(cts.jsonPropertyPairGeospatialQuery('geo', 'latitude',
         'longitude', geoShape));
@@ -326,10 +333,10 @@ Moses.QueryFilter = {
     var sortOrder = '';
     if (!('sortOrder' in options)) {
       sortOrder = 'ascending';
-    }else{
+    } else {
       sortOrder = options.sortOrder;
     }
-    if ('sortType' in options) {
+    if ('sortType' in options && options.sortType) {
       comboOptions.push(cts.indexOrder(cts.jsonPropertyReference(options.sortType, []),
         sortOrder));
     }
@@ -337,7 +344,7 @@ Moses.QueryFilter = {
   },
   parseLimit: function(options) {
     var limit = 1;
-    if ('limit' in options) {
+    if ('limit' in options && options.limit) {
       limit = options.limit;
     }
     return limit;
@@ -355,6 +362,31 @@ Moses.QueryFilter = {
       if (fullDoc.admin2Code) {
         fullDoc.district = Moses.AdminCode.getNameByCode(docs[i].root.countryCode +
           '.' + docs[i].root.admin1Code + '.' + docs[i].root.admin2Code);
+      }
+      if (fullDoc.featureCode) {
+        fullDoc.featureName = Moses.Feature.getFeatureNameByPair(fullDoc.featureClass,
+          fullDoc.featureCode);
+      }
+      translatedDocs.push(fullDoc);
+    }
+    if (translatedDocs.length === 1) {
+      translatedDocs = translatedDocs[0];
+    }
+    return translatedDocs;
+  },
+  translateFullResult: function(results) {
+    var docs = results.toArray();
+    var translatedDocs = [];
+    for (i = 0; i < docs.length; i++) {
+      var fullDoc = docs[i].toObject();
+      fullDoc.country = Moses.Country.getCountryNameByCode(fullDoc.countryCode);
+      if (fullDoc.admin1Code) {
+        fullDoc.province = Moses.AdminCode.getNameByCode(fullDoc.countryCode +
+          '.' + fullDoc.admin1Code);
+      }
+      if (fullDoc.admin2Code) {
+        fullDoc.district = Moses.AdminCode.getNameByCode(fullDoc.countryCode +
+          '.' + fullDoc.admin1Code + '.' + fullDoc.admin2Code);
       }
       if (fullDoc.featureCode) {
         fullDoc.featureName = Moses.Feature.getFeatureNameByPair(fullDoc.featureClass,
