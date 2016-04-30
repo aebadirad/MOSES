@@ -1,6 +1,8 @@
-#MOSES (Marklogic Originating Spatial Evaluation Service)
+#MOSES 
+##(Marklogic Originating Spatial Evaluation Service)
 
 Data is derived from www.geonames.org, modified to fit a NoSQL document format, all else is original work.
+Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Content Pump](https://developer.marklogic.com/products/mlcp) to deploy.
 
 [Demo is available at http://ebadirad.com:8055](http://ebadirad.com:8055/)
 
@@ -79,18 +81,25 @@ There's no danger to your system or the server by setting it this way.
 ---
 ##Deploying Geospatial Data
 
-Navigate to /mlcp/bin and run these commands:
+First! Download MLCP from https://developer.marklogic.com/products/mlcp and place it in the root of the moses directory.
+You should have it at /path/to/moses/mlcp.
+
+In a terminal/command prompt, navigate to /mlcp/bin and run these commands:
 
 1) This should be fast
+
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/country-info -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections country -output_permissions moses-role,read,moses-role,update
 
 2) This should be fast
+
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/feature-codes -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections feature-code -output_permissions moses-role,read,moses-role,update
 
 3) This one takes a few minutes
+
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/admin-codes -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections admin-code -output_permissions moses-role,read,moses-role,update
 
 4) This will take A WHILE. It can go anywhere from 7-21 hours depending on network/hardware/IO of deployer and server
+
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/locations -output_uri_replace "path/to/moses/data/,''" -batch_size=200 -thread_count 24 -transaction_size=20 -output_collections location -output_permissions moses-role,read,moses-role,update
 
 
