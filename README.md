@@ -1,11 +1,11 @@
-MOSES (Marklogic Originating Spatial Evaluation Service)
+#MOSES (Marklogic Originating Spatial Evaluation Service)
 
 Data is derived from www.geonames.org, modified to fit a NoSQL document format, all else is original work.
 
-Demo is available at http://ebadirad.com:8055
+[Demo is available at http://ebadirad.com:8055](http://ebadirad.com:8055/)
 
-====
-VERSION: 0.1-Alpha
+---
+##VERSION: 0.1-Alpha
 
 A lot of the code is messy and the built in API is really made just to make the demo work.
 
@@ -15,8 +15,8 @@ the named entity recognition as well as the 'fuzzy' search.
 Use at your own risk. If all you are doing is entity extraction or geopoint resolution, it works 
 reasonably well. 
 
-====
-REQUIRED SOFTWARE
+---
+##REQUIRED SOFTWARE
 
 Server:
 Linux, Solaris, Unix, or Windows.
@@ -34,8 +34,8 @@ I'm working on it to reduce it to just java/node, and hopefully just node eventu
 
 Developed on both windows 7/10 x64 and centos 6/7, all else is untested.
 
-====
-REQUIRED HARDWARE
+---
+##REQUIRED HARDWARE
 
 A production version of this will not be insignificant in terms of hardware.
 
@@ -53,9 +53,10 @@ For anything that gets over a few thousand hits an hour, you'll need at least a 
 
 For public services, you'll want a 12+ core, 32 gig ram setup. You should be able to serve millions of requests an hour.
 
-DISK SPACE FOR ALL SETUPS: You should have least 80gigs of free HD space. SSD is HIGHLY recommended (major performance).
+**DISK SPACE FOR ALL SETUPS: You should have least 40gigs of free HD space. SSD is HIGHLY recommended (major performance).**
 
-====
+---
+##Installation steps
 
 1. Clone the repo
 2. Install node v0.10.* or later
@@ -75,22 +76,22 @@ DISK SPACE FOR ALL SETUPS: You should have least 80gigs of free HD space. SSD is
 
 There's no danger to your system or the server by setting it this way.
 
-====
-Deploying Geospatial Data
+---
+##Deploying Geospatial Data
 
 Navigate to /mlcp/bin and run these commands:
 
-#1) This should be fast
+1) This should be fast
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/country-info -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections country -output_permissions moses-role,read,moses-role,update
 
-#2) This should be fast
+2) This should be fast
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/feature-codes -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections feature-code -output_permissions moses-role,read,moses-role,update
 
-#3) This one takes a few minutes
+3) This one takes a few minutes
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/admin-codes -output_uri_replace "path/to/moses/data/,''" -batch_size=100 -thread_count 2 -output_collections admin-code -output_permissions moses-role,read,moses-role,update
 
-#4) This will take A WHILE. It can go anywhere from 7-21 hours depending on network/hardware/IO of deployer and server
-mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/locations -output_uri_replace "path/to/moses/data/,''" -batch_size=150 -thread_count 4 -output_collections location -output_permissions moses-role,read,moses-role,update
+4) This will take A WHILE. It can go anywhere from 7-21 hours depending on network/hardware/IO of deployer and server
+mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/locations -output_uri_replace "path/to/moses/data/,''" -batch_size=200 -thread_count 24 -transaction_size=20 -output_collections location -output_permissions moses-role,read,moses-role,update
 
 
 Note: you can run all these commands in any order, but given the spin up time for the locations, it makes more sense to see if the other data will load first.
