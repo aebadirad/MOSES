@@ -247,11 +247,11 @@ Moses.AdminCode = {
     }
   },
   getAdmin2CodesByCode: function(code) {
-    return fn.subsequence(cts.search(cts.andQuery([cts.collectionQuery(
+    return cts.search(cts.andQuery([cts.collectionQuery(
         'admin-code'),
       cts.directoryQuery(["/admin-codes/" + code + '/'])
     ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
-      "ascending")), 1, 1);
+      "ascending")).toArray();
   },
   getAdmin3CodesByCode: function(admin1Code, admin2Code) {
       return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
