@@ -132,6 +132,9 @@ function convertCountry() {
     var keys = ['iso', 'iso3', 'isoNumeric', 'fips', 'country', 'capital', 'area', 'population', 'continent', 'tld', 'currencyCode', 'currencyName', 'phone', 'postalCodeFormat', 'postalCodeRegex', 'languages', 'geonameid', 'neighbours', 'equivalentFipsCode'];
     var record = {};
     for (i = 0; i < keys.length; i++) {
+      if(keys[i] === 'population' && tabs[i] < 0){
+        tabs[i] = 0;
+      }
       record[keys[i]] = tabs[i];
     }
     var fs = require('fs');
