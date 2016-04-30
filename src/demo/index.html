@@ -36,8 +36,8 @@
             <h1>MOSES Demo</h1>
             <div>
                 <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="active"><a href="#search" aria-controls="search" role="tab" data-toggle="tab">Search Manually</a></li>
-                    <li role="presentation"><a href="#extract" aria-controls="extract" role="tab" data-toggle="tab">Automatic Entity Extraction</a></li>
+                    <li role="presentation" class="active" id="searchTab"><a href="#search" aria-controls="search" role="tab" data-toggle="tab">Search Manually</a></li>
+                    <li role="presentation" id="extractTab"><a href="#extract" aria-controls="extract" role="tab" data-toggle="tab">Automatic Entity Extraction</a></li>
                 </ul>
             </div>
             <div class="tab-content">
@@ -145,7 +145,7 @@
                         </div>
                     </form>
                 </div>
-                <div id="extract" class="tab-pane" >
+                <div id="extract" class="tab-pane">
                     <div class="search-row">
                         <label>Raw text:</label>
                         <textarea class="form-control" rows="14" id="extract-text">
@@ -210,7 +210,7 @@
             },
             circle: {
                 shapeOptions: {
-                    clickable: false
+                    clickable: true
                 },
                 showRadius: true,
                 metric: false
@@ -249,13 +249,15 @@
                 radius: ((layer.getRadius()) * (0.000621371)).toFixed(5),
                 points: layer.getLatLng()
             };
+            window.geo.points.lat = window.geo.points.lat.toFixed(5);
+            window.geo.points.lng = window.geo.points.lng.toFixed(5);
         }
 
         if (type === 'polygon') {
             coordinates = [];
             latlngs = layer.getLatLngs();
             for (var i = 0; i < latlngs.length; i++) {
-                coordinates.push([latlngs[i].lng.toFixed(5), latlngs[i].lat].toFixed(5))
+                coordinates.push([latlngs[i].lng.toFixed(5), latlngs[i].lat.toFixed(5)]);
             }
 
             window.geo = {
@@ -264,8 +266,50 @@
             };
         }
 
-
         editableLayers.addLayer(layer);
+    });
+
+    //could probably combine this with the on observer above, but this is a demo, this is for editing the shapes:
+    map.on('draw:edited', function(e) {
+        var layers = e.layers;
+        layers.eachLayer(function(layer) {
+            if (layer instanceof L.Marker) {
+                window.geo = {
+                    type: 'point',
+                    points: layer.getLatLng()
+                };
+                window.geo.points.lat = window.geo.points.lat.toFixed(5);
+                window.geo.points.lng = window.geo.points.lng.toFixed(5);
+                layer.bindPopup('<p><strong>Lat:</strong> ' + window.geo.points.lat + '<br /> <strong>Lon:</strong> ' + window.geo.points.lng + '</p>');
+            }
+            if (layer instanceof L.Circle) {
+                window.geo = {
+                    type: 'circle',
+                    radius: ((layer.getRadius()) * (0.000621371)).toFixed(5),
+                    points: layer.getLatLng()
+                };
+                window.geo.points.lat = window.geo.points.lat.toFixed(5);
+                window.geo.points.lng = window.geo.points.lng.toFixed(5);
+            }
+            if (layer instanceof L.Polygon) {
+                coordinates = [];
+                latlngs = layer.getLatLngs();
+                for (var i = 0; i < latlngs.length; i++) {
+                    coordinates.push([latlngs[i].lng.toFixed(5), latlngs[i].lat.toFixed(5)]);
+                }
+                window.geo = {
+                    type: 'polygon',
+                    points: coordinates
+                };
+            }
+        });
+    });
+
+    map.on('draw:deleted', function(e) {
+        var type = e.layerType,
+            layer = e.layer;
+        editableLayers.clearLayers();
+        window.geo = null;
     });
 
     $(document).ready(function() {
@@ -310,11 +354,31 @@
             }
         });
 
+        $('#searchTab').click(function() {
+            if (!$(this).hasClass('active')) {
+                map.addControl(drawControl);
+                editableLayers.clearLayers();
+                markers.clearLayers();
+                $('#results-table').html('');
+            }
+        });
+
+        $('#extractTab').click(function() {
+            if (!$(this).hasClass('active')) {
+                map.removeControl(drawControl);
+                editableLayers.clearLayers();
+                markers.clearLayers();
+                $('#results-table').html('');
+            }
+        });
+
         //our submit button observer for clicks
         $('#submitButton').click(function() {
+            $(this).prop("disabled", true);
             submitData();
         });
         $('#extractButton').click(function() {
+            $(this).prop("disabled", true);
             submitExtractData();
         });
     });

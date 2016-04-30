@@ -6,20 +6,24 @@ function buildFormData() {
 			inequality: $('#population-inequality').val()
 		};
 	}
-	var geo;
-	var lat;
-	var lon;
+	var geoc = null;
+	var lat = null;
+	var lon = null;
 	if (window.geo && window.geo.type === 'point') {
 		lat = window.geo.points.lat;
 		lon = window.geo.points.lng;
-		geo = window.geo;
+		geoc = window.geo;
 	} else if (window.geo && window.geo.type === 'circle') {
-		geo = window.geo;
-		geo.points = [geo.points.lat.toFixed(5), geo.points.lng.toFixed(5)];
+		//need to passby value not reference here 'cause we're changing stuff!
+		geoc = $.extend({}, window.geo);
+		geoc.points = [geo.points.lat, geo.points.lng];
 	} else if (window.geo && window.geo.type === 'polygon') {
-		geo = window.geo;
+		geoc = window.geo;
 	}
-	var name = $('#name').val();
+	var name = $('#name').val().trim();
+	if (name.length < 3) {
+		name = null;
+	}
 	var fuzzy = $('#fuzzy').val();
 	var admin1Code = $('#admin1Code').val();
 	var admin2Code = $('#admin2Code').val();
@@ -41,7 +45,7 @@ function buildFormData() {
 			sortType: sortType ? sortType : null,
 			sortOrder: sortOrder ? sortOrder : null,
 			limit: $('#limit').val(),
-			geo: geo
+			geo: geoc
 		},
 		lat: lat,
 		lon: lon
@@ -60,6 +64,9 @@ function submitData() {
 		},
 		error: function() {
 			console.log('woah error!');
+		},
+		complete: function() {
+			$('#submitButton').prop('disabled', false);
 		},
 		processData: false,
 		type: 'POST',
@@ -80,6 +87,9 @@ function submitExtractData() {
 		},
 		error: function() {
 			console.log('woah error!');
+		},
+		complete: function() {
+			$('#extractButton').prop('disabled', false);
 		},
 		processData: false,
 		type: 'POST',
