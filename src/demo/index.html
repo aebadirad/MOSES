@@ -34,113 +34,135 @@
     <div class="container">
         <div class="starter-template">
             <h1>MOSES Demo</h1>
-            <div id="search">
-                <form id="search-form">
+            <div>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#search" aria-controls="search" role="tab" data-toggle="tab">Search Manually</a></li>
+                    <li role="presentation"><a href="#extract" aria-controls="extract" role="tab" data-toggle="tab">Automatic Entity Extraction</a></li>
+                </ul>
+            </div>
+            <div class="tab-content">
+                <div id="search" class="tab-pane active">
+                    <form id="search-form">
+                        <div class="search-row">
+                            <div class="input-group">
+                                <span class="input-group-addon" id="basic-addon3">Name</span>
+                                <input type="text" class="form-control" id="name" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
+                            </div>
+                            <div class="input-group">
+                                <select id='fuzzy' class="selectpicker">
+                                    <option value="" selected>Fuzzy Name Search Off</option>
+                                    <option value="true">Fuzzy Name Search On</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Population</label>
+                            <div class="input-group">
+                                <select id='population-inequality' class="selectpicker" style="float: left;">
+                                    <option value=">" selected>More Than</option>
+                                    <option value="<">Less Than</option>
+                                </select>
+                                <input type="text" class="form-control" id="population-amount" pattern="[0-9]" placeholder="Example 0 or 50000">
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Feature Class</label>
+                            <div class="input-group">
+                                <select id='featureClass' class="selectpicker">
+                                    <option value="" selected>All</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row" id="featureCode-div">
+                            <label>Sub Class</label>
+                            <div class="input-group">
+                                <select id='featureCode' class="selectpicker">
+                                    <option value="" selected>Select a class first</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Country</label>
+                            <div class="input-group">
+                                <select id='countryCode' class="selectpicker">
+                                    <option value="" selected>All</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row" id="admin1Code-div">
+                            <label>Province</label>
+                            <div class="input-group">
+                                <select id='admin1Code' class="selectpicker">
+                                    <option value="" selected>Select a country first</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row" id="admin2Code-div">
+                            <label>District</label>
+                            <div class="input-group">
+                                <select id='admin2Code' class="selectpicker">
+                                    <option value="" selected>Select a province first</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Max Results</label>
+                            <div class="input-group">
+                                <select id='limit' class="selectpicker">
+                                    <option value="1" selected>1</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="100">100</option>
+                                    <option value="500">500</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Sort By</label>
+                            <div class="input-group">
+                                <select id='sortType' class="selectpicker">
+                                    <option value="asciiname" selected>Name</option>
+                                    <option value="population">Population</option>
+                                    <option value="featureClass">Feature Class</option>
+                                    <option value="countryCode">Country</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <label>Sort Order</label>
+                            <div class="input-group">
+                                <select id='sortOrder' class="selectpicker">
+                                    <option value="ascending" selected>Ascending</option>
+                                    <option value="descending">descending</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-row submit-row">
+                            <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="submitButton">
+                                <span class="glyphicon glyphicon-search"></span> Find Locations
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div id="extract" class="tab-pane" >
                     <div class="search-row">
-                        <div class="input-group">
-                            <span class="input-group-addon" id="basic-addon3">Name</span>
-                            <input type="text" class="form-control" id="name" placeholder="Name of the place, ex: Empire State Building" aria-describedby="basic-addon3">
-                        </div>
-                        <div class="input-group">
-                            <select id='fuzzy' class="selectpicker">
-                                <option value="" selected>Fuzzy Name Search Off</option>
-                                <option value="true">Fuzzy Name Search On</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row">
-                        <label>Population</label>
-                        <div class="input-group">
-                            <select id='population-inequality' class="selectpicker" style="float: left;">
-                                <option value=">" selected>More Than</option>
-                                <option value="<">Less Than</option>
-                            </select>
-                            <input type="text" class="form-control" id="population-amount" pattern="[0-9]" placeholder="Example 0 or 50000">
-                        </div>
-                    </div>
-                    <div class="search-row">
-                        <label>Feature Class</label>
-                        <div class="input-group">
-                            <select id='featureClass' class="selectpicker">
-                                <option value="" selected>All</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row" id="featureCode-div">
-                        <label>Sub Class</label>
-                        <div class="input-group">
-                            <select id='featureCode' class="selectpicker">
-                                <option value="" selected>Select a class first</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row">
-                        <label>Country</label>
-                        <div class="input-group">
-                            <select id='countryCode' class="selectpicker">
-                                <option value="" selected>All</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row" id="admin1Code-div">
-                        <label>Province</label>
-                        <div class="input-group">
-                            <select id='admin1Code' class="selectpicker">
-                                <option value="" selected>Select a country first</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row" id="admin2Code-div">
-                        <label>District</label>
-                        <div class="input-group">
-                            <select id='admin2Code' class="selectpicker">
-                                <option value="" selected>Select a province first</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-row">
-                        <label>Max Results</label>
-                        <div class="input-group">
-                            <select id='limit' class="selectpicker">
-                                <option value="">All</option>
-                                <option value="1" selected>1</option>
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="25">25</option>
-                            </select>
-                        </div>
-                    </div>
-                     <div class="search-row">
-                        <label>Sort By</label>
-                        <div class="input-group">
-                            <select id='sortType' class="selectpicker">
-                                <option value="asciiname" selected>Name</option>
-                                <option value="population">Population</option>
-                                <option value="featureClass">Feature Class</option>
-                                <option value="countryCode">Country</option>
-                            </select>
-                        </div>
-                    </div>
-                     <div class="search-row">
-                        <label>Sort Order</label>
-                        <div class="input-group">
-                            <select id='sortOrder' class="selectpicker">
-                                <option value="ascending" selected>Ascending</option>
-                                <option value="descending">descending</option>
-                            </select>
-                        </div>
+                        <label>Raw text:</label>
+                        <textarea class="form-control" rows="14" id="extract-text">
+                            China has denied a U.S. aircraft carrier entry into a Hong Kong port, according to Pentagon spokesman Cmdr. Bill Urban. Meanwhile, the New York Yankees have won their sixth game of the series, heading to Boston next week to play the final game of the world series. In other news, Russia issued a statement by Pres. Valdimir Putin that they will not cease operations in Syria.
+                        </textarea>
                     </div>
                     <div class="search-row submit-row">
-                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="submitButton">
-                            <span class="glyphicon glyphicon-search"></span> Find Locations
+                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="extractButton">
+                            <span class="glyphicon glyphicon-search"></span> Extract Locations
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
             <div id="mapid"></div>
         </div>
         <div id="results">
-        <table class="table table-hover table-striped" id="results-table"></table>
+            <table class="table table-hover table-striped" id="results-table"></table>
         </div>
     </div>
     <!-- /.container -->
@@ -290,7 +312,10 @@
 
         //our submit button observer for clicks
         $('#submitButton').click(function() {
-                submitData();
+            submitData();
+        });
+        $('#extractButton').click(function() {
+            submitExtractData();
         });
     });
     </script>

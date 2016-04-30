@@ -11,6 +11,7 @@ var geonameid = xdmp.getRequestField("id");
 var options = xdmp.getRequestBody();
 var lat = xdmp.getRequestField("lat");
 var lon = xdmp.getRequestField("lon");
+
 if (geonameid && searchFunction === 'getLocationById') {
 	Moses.Location.getLocationById(geonameid);
 } else if (geonameid && searchFunction === 'getLocationByIdDetails') {

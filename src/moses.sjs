@@ -2,6 +2,7 @@ var Moses = {
   name: "Moses",
   //note, marklogic requires this to do the backend calculations for certain geo functions
   geo: require('/MarkLogic/geospatial/geospatial'),
+  pos: require('/lib/pos/index.sjs'),
   methods: function(obj) {
     return Object.getOwnPropertyNames(obj).filter(function(p) {
       return typeof obj[p] === 'function';
@@ -237,18 +238,20 @@ Moses.AdminCode = {
     ])).toArray()[0].root;
   },
   getNameByCode: function(code) {
-    var result = cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
-      cts.jsonPropertyRangeQuery('adminCode', '=', code)
-    ])).toArray()[0];
-    if (result) {
-      result.root.name;
+    var results = fn.subsequence(cts.search(cts.andQuery([cts.collectionQuery(
+        'admin-code'),
+      cts.jsonPropertyValueQuery('adminCode', code)
+    ])), 1, 1);
+    if (results.count > 0) {
+      return results.next().value.root.name;
     }
   },
   getAdmin2CodesByCode: function(code) {
-    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
+    return fn.subsequence(cts.search(cts.andQuery([cts.collectionQuery(
+        'admin-code'),
       cts.directoryQuery(["/admin-codes/" + code + '/'])
     ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
-      "ascending")).toArray();
+      "ascending")), 1, 1);
   },
   getAdmin3CodesByCode: function(admin1Code, admin2Code) {
       return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
@@ -481,6 +484,66 @@ Moses.Location = {
     var limit = Moses.QueryFilter.parseLimit(options);
     return fn.subsequence(cts.search(cts.andQuery(andQuery), searchOptions),
       1, limit);
+  }
+};
+Moses.Extract = {
+  name: 'Extract',
+  getNouns: function(text) {
+    var words = new Moses.pos.Lexer().lex(text);
+    result = [];
+    var tagger = new Moses.pos.Tagger();
+    var taggedWords = tagger.tag(words);
+    var lastTag = '';
+    var lastType = '';
+    for (i in taggedWords) {
+      var taggedWord = taggedWords[i];
+      var word = taggedWord[0];
+      var tag = taggedWord[1];
+      if (tag === 'NNP') {
+        if (lastTag === 'NNP') {
+          var count = result.length - 1;
+          var lastWord = result[count];
+          var joiner = '';
+          if (lastType === 'word') {
+            joiner = ' ';
+          }
+          result[count] = lastWord + joiner + word;
+        } else {
+          result.push(word);
+        }
+      }
+      if (word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+        lastTag = tag;
+        lastType = "word";
+      } else {
+        lastType = "punctuation";
+      }
+    }
+    return result;
+  },
+  getLocationsfromNouns: function(nouns) {
+    var foundNouns = [];
+    for (i = 0; i < nouns.length; i++) {
+      var found = cts.estimate(cts.andQuery([cts.directoryQuery(
+          '/locations/'),
+        cts.jsonPropertyValueQuery('asciiname', nouns[i])
+      ]))
+      if (found > 0) {
+        foundNouns.push(nouns[i]);
+      }
+    }
+    return foundNouns;
+  },
+  resolveLocations: function(foundNouns) {
+    var locations = []
+    for (i = 0; i < foundNouns.length; i++) {
+      locations.push(fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'), cts.jsonPropertyWordQuery([
+        'alternatenames', 'asciiname'
+      ], foundNouns[i])]), [cts.indexOrder(cts.jsonPropertyReference(
+        'population', []), 'descending')]), 1, 1).next().value);
+    }
+    return Moses.QueryFilter.translateAdminCodes(locations);
   }
 };
 module.exports = Moses;

@@ -13,7 +13,7 @@ body {
     float: right;
 }
 
-#search {
+.tab-content {
     height: 380px;
     width: 34%;
     float: left;
@@ -46,4 +46,8 @@ body {
 
 #admin2Code-div {
 	display: none;
+}
+
+#extract-text {
+	margin-bottom: 12px;
 }

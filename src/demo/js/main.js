@@ -67,6 +67,26 @@ function submitData() {
 	});
 };
 
+function submitExtractData() {
+	var data = {
+		text: $('#extract-text').val().trim()
+	};
+	$.ajax({
+		contentType: 'application/json',
+		data: JSON.stringify(data),
+		dataType: 'json',
+		success: function(response) {
+			parseResponse(response);
+		},
+		error: function() {
+			console.log('woah error!');
+		},
+		processData: false,
+		type: 'POST',
+		url: '/api/extract/resolve'
+	});
+};
+
 function parseResponse(data) {
 	var result = '';
 	// clear our markers if any were present
@@ -81,13 +101,13 @@ function parseResponse(data) {
 		for (i = 0; i < data.length; i++) {
 			var record = data[i];
 			var district = record.district ? record.district : 'N/A';
+			var province = record.province ? record.province : 'N/A';
 			var feature = record.feature ? record.feature : 'N/A';
 			var name = record.asciiname ? record.asciiname : record.name;
-			result += '<tr><th>' + record.geonameid + '</th><th>' + name +
-				'</th><th>' + record.countryCode + '</th><th>' + record.province +
-				'</th><th>' + district + '</th><th>' + feature + '</th><th>' +
-				record.population + '</th><th>' + record.geo.latitude + '</th><th>' +
-				record.geo.longitude + '</th></tr>';
+			result += '<tr><th>' + record.geonameid + '</th><th>' + name + '</th><th>' +
+				record.countryCode + '</th><th>' + province + '</th><th>' + district +
+				'</th><th>' + feature + '</th><th>' + record.population + '</th><th>' +
+				record.geo.latitude + '</th><th>' + record.geo.longitude + '</th></tr>';
 			var marker = L.marker([record.geo.latitude, record.geo.longitude]);
 			marker.bindPopup('<p>' + name + '<br />Lat: ' + record.geo.latitude +
 				'<br />Lon: ' + record.geo.longitude + '</p>', {

@@ -88,5 +88,20 @@
             <add-query-param name="function">findLocations</add-query-param>
             <dispatch>/api/search.sjs</dispatch>
         </match-path>
+        <match-path prefix="/api/extract/confirm">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">confirmLocations</add-query-param>
+            <dispatch>/api/extract.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/extract/resolve">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">resolveLocations</add-query-param>
+            <dispatch>/api/extract.sjs</dispatch>
+        </match-path>
+        <match-path prefix="/api/extract">
+            <set-eval>eval</set-eval>
+            <add-query-param name="function">extractLocations</add-query-param>
+            <dispatch>/api/extract.sjs</dispatch>
+        </match-path>
     </match-method>
 </rewriter>

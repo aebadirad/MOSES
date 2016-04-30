@@ -1,0 +1,18 @@
+var Moses = require('/moses.sjs');
+var Utils = require('lib/utils.sjs')
+	//let's grab our request field variables so we can see what's being requested
+var searchFunction = xdmp.getRequestField("function");
+var body = xdmp.getRequestBody();
+if (body && searchFunction === 'extractLocations') {
+	var text = body.toObject().text;
+	Moses.Extract.getNouns(text);
+} else if (body && searchFunction === 'confirmLocations') {
+	var text = body.toObject().text;
+	var nouns = Moses.Extract.getNouns(text);
+	Moses.Extract.getLocationsfromNouns(nouns);
+} else if (body && searchFunction === 'resolveLocations') {
+	var text = body.toObject().text;
+	var nouns = Moses.Extract.getNouns(text);
+	var locations = Moses.Extract.getLocationsfromNouns(nouns);
+	Moses.Extract.resolveLocations(locations);
+}
