@@ -12,7 +12,14 @@ if (body && searchFunction === 'extractLocations') {
 	Moses.Extract.getLocationsfromNouns(nouns);
 } else if (body && searchFunction === 'resolveLocations') {
 	var text = body.toObject().text;
+	var enrichedText = Moses.Extract.getRaw(text);
 	var nouns = Moses.Extract.getNouns(text);
 	var locations = Moses.Extract.getLocationsfromNouns(nouns);
-	Moses.Extract.resolveLocations(locations);
+	var resolved = Moses.Extract.resolveLocations(locations);
+	for(i=0;i<locations.length;i++){
+		var highlight = '<span class="highlight" title="'+resolved[i].asciiname.replace("'", '')+'">'+locations[i]+'</span>';
+		enrichedText = enrichedText.replace('<span class="NNP">'+locations[i]+'</span>', highlight);
+	}
+	var response = {'records': resolved, 'text': enrichedText};
+	response;
 }

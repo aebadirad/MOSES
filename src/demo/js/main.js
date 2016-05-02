@@ -83,7 +83,8 @@ function submitExtractData() {
 		data: JSON.stringify(data),
 		dataType: 'json',
 		success: function(response) {
-			parseResponse(response);
+			parseResponse(response.records);
+			$('#enrich-text').html(response.text);
 		},
 		error: function() {
 			console.log('woah error!');
@@ -101,10 +102,10 @@ function parseResponse(data) {
 	var result = '';
 	// clear our markers if any were present
 	markers.clearLayers();
+	window.markerStore = {};
 	if (data) {
 		//create table headers
-		result +=
-			"<tr><th>id</th><th>Name</th><th>Country</th><th>Province</th><th>District</th><th>Feature</th><th>Population</th><th>Lat</th><th>Lon</th></tr>";
+		//result += 		"<tr id='results-header'><th>id</th><th>Name</th><th>Country</th><th>Province</th><th>District</th><th>Feature</th><th>Population</th><th>Lat</th><th>Lon</th></tr>";
 		if (!(Object.prototype.toString.call(data) === '[object Array]')) {
 			data = [data];
 		}
@@ -114,17 +115,21 @@ function parseResponse(data) {
 			var province = record.province ? record.province : 'N/A';
 			var feature = record.feature ? record.feature : 'N/A';
 			var name = record.asciiname ? record.asciiname : record.name;
-			result += '<tr><th>' + record.geonameid + '</th><th>' + name + '</th><th>' +
-				record.countryCode + '</th><th>' + province + '</th><th>' + district +
-				'</th><th>' + feature + '</th><th>' + record.population + '</th><th>' +
-				record.geo.latitude + '</th><th>' + record.geo.longitude + '</th></tr>';
-			var marker = L.marker([record.geo.latitude, record.geo.longitude]);
+			result += '<tr id="' + record.geonameid + '" class="rowMarker"><td>' +
+				record.geonameid + '</td><td>' + name + '</td><td>' + record.countryCode +
+				'</td><td>' + province + '</td><td>' + district + '</td><td>' + feature +
+				'</td><td>' + record.population + '</td><td>' + record.geo.latitude +
+				'</td><td>' + record.geo.longitude + '</td></tr>';
+			var marker = L.marker([record.geo.latitude, record.geo.longitude], {
+				id: record.geonameid
+			});
 			marker.bindPopup('<p>' + name + '<br />Lat: ' + record.geo.latitude +
 				'<br />Lon: ' + record.geo.longitude + '</p>', {
 					showOnMouseOver: true
 				});
 			//add to our global markers group
 			markers.addLayer(marker);
+			window.markerStore[record.geonameid] = marker;
 		}
 		//readd these guys to the map
 		map.addLayer(markers);
@@ -132,6 +137,37 @@ function parseResponse(data) {
 		result = "There were no results found for your query."
 	}
 	$('#results-table').html(result);
+	$('.rowMarker').hover(function() {
+		$(this).addClass("hover");
+		var id = $(this).attr('id');
+		var marker = window.markerStore[id]
+		if (!marker.frozen) {
+			marker.setIcon(orangeIcon);
+			marker.setZIndexOffset(999);
+		}
+	}, function() {
+		$(this).removeClass("hover");
+		var id = $(this).attr('id');
+		var marker = window.markerStore[id]
+		if (!marker.frozen) {
+			marker.setIcon(defaultIcon);
+			marker.setZIndexOffset(5);
+		}
+	});
+	$('.rowMarker').click(function() {
+		$(this).toggleClass("bg-info");
+		var id = $(this).attr('id');
+		var marker = window.markerStore[id]
+		if ($(this).hasClass('bg-info')) {
+			marker.setIcon(redIcon);
+			marker.frozen = true;
+			marker.setZIndexOffset(999);
+		} else {
+			marker.setIcon(defaultIcon);
+			marker.frozen = false;
+			marker.setZIndexOffset(5);
+		}
+	});
 };
 
 function getCountries() {

@@ -6,6 +6,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/leaflet.css" />
     <link rel="stylesheet" href="css/leaflet.draw.css" />
+    <link rel="stylesheet" href="css/leaflet.awesome-markers.css">
     <link rel="stylesheet" href="css/demo.css" />
 </head>
 
@@ -34,7 +35,7 @@
     <div class="container">
         <div class="starter-template">
             <h1>MOSES Demo</h1>
-            <h3>(Marklogic Originating Spatial Evaluation Service)</h3>
+            <h3 style="margin: 0px;">(Marklogic Originating Spatial Evaluation Service)</h3>
             <div>
                 <ul class="nav nav-tabs" role="tablist">
                     <li role="presentation" class="active" id="searchTab"><a href="#search" aria-controls="search" role="tab" data-toggle="tab">Search Manually</a></li>
@@ -147,22 +148,54 @@
                     </form>
                 </div>
                 <div id="extract" class="tab-pane">
+                    <div id="extracted">
+                        <div class="search-row">
+                            <label>Raw text:</label>
+                            <textarea class="form-control" rows="14" id="extract-text">China has denied a U.S. aircraft carrier entry into a Hong Kong port, according to Pentagon spokesman Cmdr. Bill Urban. Meanwhile, the New York Yankees have won their sixth game of the series, heading to Boston next week to play the final game of the world series. In other news, Russia issued a statement by President Vladimir Putin that they will not cease operations in Syria. Additionally, the U.S. Navy has formally begun construction on its newest Virginia-class submarine, as Jill Biden, wife of Vice President Joe Biden and the sub's sponsor, hosted the keel laying ceremony for the USS Delaware in Virginia.
+                            </textarea>
+                        </div>
+                        <div class="search-row submit-row">
+                            <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="extractButton">
+                                <span class="glyphicon glyphicon-search"></span> Extract Locations
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="processed">
                     <div class="search-row">
-                        <label>Raw text:</label>
-                        <textarea class="form-control" rows="14" id="extract-text">China has denied a U.S. aircraft carrier entry into a Hong Kong port, according to Pentagon spokesman Cmdr. Bill Urban. Meanwhile, the New York Yankees have won their sixth game of the series, heading to Boston next week to play the final game of the world series. In other news, Russia issued a statement by Pres. Vladimir Putin that they will not cease operations in Syria. Additionally, the U.S. Navy has formally begun construction on its newest Virginia-class submarine, as Jill Biden, wife of Vice President Joe Biden and the sub's sponsor, hosted the keel laying ceremony for the USS Delaware in Virginia.
-                        </textarea>
+                        <p>
+                            <label>Enriched Text</label>
+                        </p>
+                        <p>
+                            <div id="enrich-text" class="well">
+                            </div>
+                        </p>
                     </div>
                     <div class="search-row submit-row">
-                        <button type="button" class="btn btn-primary btn-lg" aria-label="Search!" id="extractButton">
-                            <span class="glyphicon glyphicon-search"></span> Extract Locations
-                        </button>
+                        <button type="button" class="btn" aria-label="Search!" id="processedButton">
+                            Go back </button>
                     </div>
                 </div>
             </div>
             <div id="mapid"></div>
         </div>
         <div id="results">
-            <table class="table table-hover table-striped" id="results-table"></table>
+            <table class="table table-hover">
+                <thead id="results-header">
+                    <tr>
+                        <th>id</th>
+                        <th>Name</th>
+                        <th>Country</th>
+                        <th>Province</th>
+                        <th>District</th>
+                        <th>Feature</th>
+                        <th>Population</th>
+                        <th>Lat</th>
+                        <th>Lon</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table"></tbody>
+            </table>
         </div>
     </div>
     <!-- /.container -->
@@ -170,6 +203,7 @@
     <script src="js/leaflet.draw.js"></script>
     <script src="js/jquery-2.2.3.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
+    <script src="js/leaflet.awesome-markers.js"></script>
     <script src="js/main.js"></script>
     <!--- this is where the initial map creation is going to keep it out -->
     <script>
@@ -312,6 +346,18 @@
         window.geo = null;
     });
 
+    var orangeIcon = L.AwesomeMarkers.icon({
+        icon: 'star',
+        markerColor: 'orange'
+    });
+
+    var redIcon = L.AwesomeMarkers.icon({
+        icon: 'star',
+        markerColor: 'red'
+    });
+
+    var defaultIcon = new L.Icon.Default();
+
     $(document).ready(function() {
         $("#population-amount").keypress(function(e) {
             if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
@@ -380,6 +426,13 @@
         $('#extractButton').click(function() {
             $(this).prop("disabled", true);
             submitExtractData();
+            $("#extracted").slideUp();
+            $("#processed").slideDown();
+
+        });
+        $('#processedButton').click(function() {
+            $("#processed").slideUp();
+            $("#extracted").slideDown();
         });
     });
     </script>

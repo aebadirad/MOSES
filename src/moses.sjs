@@ -247,8 +247,7 @@ Moses.AdminCode = {
     }
   },
   getAdmin2CodesByCode: function(code) {
-    return cts.search(cts.andQuery([cts.collectionQuery(
-        'admin-code'),
+    return cts.search(cts.andQuery([cts.collectionQuery('admin-code'),
       cts.directoryQuery(["/admin-codes/" + code + '/'])
     ]), cts.indexOrder(cts.jsonPropertyReference('asciiname', []),
       "ascending")).toArray();
@@ -520,6 +519,45 @@ Moses.Extract = {
       }
     }
     return result;
+  },
+  getRaw: function(text) {
+    var words = new Moses.pos.Lexer().lex(text);
+    result = [];
+    var tagger = new Moses.pos.Tagger();
+    var taggedWords = tagger.tag(words);
+    var lastTag = '';
+    var lastType = '';
+    for (i in taggedWords) {
+      var taggedWord = taggedWords[i];
+      var word = taggedWord[0];
+      var tag = taggedWord[1];
+      if (tag === 'NNP') {
+        if (lastTag === 'NNP') {
+          var count = result.length - 1;
+          var lastWord = result[count];
+          var joiner = '';
+          if (lastType === 'word') {
+            joiner = ' ';
+          }
+          result[count] = ' <span class="NNP">' + lastWord.replace('<span class="NNP">', '').replace(
+            '</span>', '').trim() + joiner + word + '</span>';
+        } else {
+          result.push(' <span class="NNP">' + word + '</span>');
+        }
+      } else {
+        if (word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+          word = ' ' + word;
+        }
+        result.push(word);
+      }
+      if (word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+        lastTag = tag;
+        lastType = "word";
+      } else {
+        lastType = "punctuation";
+      }
+    }
+    return result.join('');
   },
   getLocationsfromNouns: function(nouns) {
     var foundNouns = [];

@@ -32,22 +32,52 @@ body {
 }
 
 .submit-row {
-
     text-align: center;
 }
 
 #featureCode-div {
-	display: none;
+    display: none;
 }
 
 #admin1Code-div {
-	display: none;
+    display: none;
 }
 
 #admin2Code-div {
-	display: none;
+    display: none;
 }
 
 #extract-text {
-	margin-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+thead {
+    background-color: #CCC;
+    color: black;
+}
+
+#results {
+    height: 300px;
+    width: 100%;
+    overflow-y: scroll;
+}
+
+#enrich-text {
+    height: 280px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    text-align: left;
+}
+
+.NNP {
+    background-color: #AFEEEE;
+}
+
+#processed {
+    display: none;
+}
+
+.highlight {
+    cursor: pointer;
+    background-color: yellow;
 }
