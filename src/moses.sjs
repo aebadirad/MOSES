@@ -539,8 +539,9 @@ Moses.Extract = {
           if (lastType === 'word') {
             joiner = ' ';
           }
-          result[count] = ' <span class="NNP">' + lastWord.replace('<span class="NNP">', '').replace(
-            '</span>', '').trim() + joiner + word + '</span>';
+          result[count] = ' <span class="NNP">' + lastWord.replace(
+              '<span class="NNP">', '').replace('</span>', '').trim() +
+            joiner + word + '</span>';
         } else {
           result.push(' <span class="NNP">' + word + '</span>');
         }

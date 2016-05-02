@@ -66,15 +66,16 @@ For public services, you'll want a 12+ core, 32 gig ram setup. You should be abl
 4. Install ruby locally
 5. Install MarkLogic on your server (server does NOT need anything but MarkLogic)
 6. From the base directory, run npm install
-7. Unzip resources.zip into folder /resources
-8. From node, run convertData.js to generate your data. NOTE: this will take a while
-9. Modify deploy/build.properties to match your MarkLogic server IP, port, and admin username/password
-10. Run ml dev bootstrap
-11. Run ml dev deploy modules -v to deploy modules
-12. Run through 'deploying the geospatial data' steps listed below using MLCP
-13. MOSES should now be installed!
-14. (optional) Open a browser and navigate to: http://yourip:8055/demo
-15. (optional) To disable having to login with a user/pass (make public), in the MarkLogic admin (http://yourip:8001) under groups->default->app servers->moses [HTTP] you can turn off login safely by setting "authentication" to "application-level" in the drop-down box. 
+7. Download http://download.geonames.org/export/dump/allCountries.zip and put it in your /resources folder.
+8. Unzip resources.zip & allCountries.zip directly into folder /resources (no sub directories)
+9. From node, run convertData.js to generate your data. NOTE: this will take a while
+10. Modify deploy/build.properties to match your MarkLogic server IP, port, and admin username/password
+11. Run ml dev bootstrap
+12. Run ml dev deploy modules -v to deploy modules
+13. Run through 'deploying the geospatial data' steps listed below using MLCP
+14. MOSES should now be installed!
+15. (optional) Open a browser and navigate to: http://yourip:8055/demo
+16. (optional) To disable having to login with a user/pass (make public), in the MarkLogic admin (http://yourip:8001) under groups->default->app servers->moses [HTTP] you can turn off login safely by setting "authentication" to "application-level" in the drop-down box. 
 
 There's no danger to your system or the server by setting it this way.
 
