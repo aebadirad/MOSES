@@ -305,9 +305,9 @@ Moses.QueryFilter = {
         ]));
     }
     if ('name' in options && 'fuzzy' in options && options.name && options.fuzzy) {
-      comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name'],
+      comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
         options.name, ['case-insensitive', 'diacritic-insensitive',
-          'punctuation-insensitive', 'whitespace-insensitive',
+          'punctuation-insensitive', 'whitespace-sensitive',
           'wildcarded'
         ]));
     }

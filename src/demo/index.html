@@ -135,8 +135,8 @@
                             <label>Sort Order</label>
                             <div class="input-group">
                                 <select id='sortOrder' class="selectpicker">
-                                    <option value="ascending" selected>Ascending</option>
-                                    <option value="descending">descending</option>
+                                    <option value="ascending">Ascending</option>
+                                    <option value="descending" selected>Descending</option>
                                 </select>
                             </div>
                         </div>
@@ -422,6 +422,7 @@
                 map.removeControl(drawControl);
                 editableLayers.clearLayers();
                 markers.clearLayers();
+                window.geo = null;
                 $('#results-table').html('');
                 $("#extracted").show();
             }
