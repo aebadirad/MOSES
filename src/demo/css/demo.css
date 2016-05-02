@@ -81,3 +81,8 @@ thead {
     cursor: pointer;
     background-color: yellow;
 }
+
+.highlight-selected {
+    cursor: pointer;
+    background-color: #FF7878;
+}

@@ -85,6 +85,10 @@ function submitExtractData() {
 		success: function(response) {
 			parseResponse(response.records);
 			$('#enrich-text').html(response.text);
+			$('.highlight').click(function(){
+				var id = $(this).attr('geoid');
+				toggleMarker(id);
+			});
 		},
 		error: function() {
 			console.log('woah error!');
@@ -155,10 +159,14 @@ function parseResponse(data) {
 		}
 	});
 	$('.rowMarker').click(function() {
-		$(this).toggleClass("bg-info");
 		var id = $(this).attr('id');
-		var marker = window.markerStore[id]
-		if ($(this).hasClass('bg-info')) {
+		toggleMarker(id);
+	});
+};
+
+function toggleMarker(id){
+	var marker = window.markerStore[id];
+		if (!marker.frozen) {
 			marker.setIcon(redIcon);
 			marker.frozen = true;
 			marker.setZIndexOffset(999);
@@ -167,7 +175,8 @@ function parseResponse(data) {
 			marker.frozen = false;
 			marker.setZIndexOffset(5);
 		}
-	});
+		$('[geoid='+id+']').toggleClass('highlight-selected highlight');
+		$('#'+id).toggleClass("bg-info");
 };
 
 function getCountries() {

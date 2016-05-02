@@ -17,7 +17,7 @@ if (body && searchFunction === 'extractLocations') {
 	var locations = Moses.Extract.getLocationsfromNouns(nouns);
 	var resolved = Moses.Extract.resolveLocations(locations);
 	for(i=0;i<locations.length;i++){
-		var highlight = '<span class="highlight" title="'+resolved[i].asciiname.replace("'", '')+'">'+locations[i]+'</span>';
+		var highlight = '<span class="highlight" geoid="'+resolved[i].geonameid+'" title="'+resolved[i].asciiname.replace("'", '')+'">'+locations[i]+'</span>';
 		enrichedText = enrichedText.replace('<span class="NNP">'+locations[i]+'</span>', highlight);
 	}
 	var response = {'records': resolved, 'text': enrichedText};
