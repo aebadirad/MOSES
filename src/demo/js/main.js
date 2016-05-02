@@ -107,12 +107,12 @@ function parseResponse(data) {
 	// clear our markers if any were present
 	markers.clearLayers();
 	window.markerStore = {};
-	if (data) {
+	if (!(Object.prototype.toString.call(data) === '[object Array]')) {
+		data = [data];
+	}
+	if (data && data.length > 0) {
 		//create table headers
 		//result += 		"<tr id='results-header'><th>id</th><th>Name</th><th>Country</th><th>Province</th><th>District</th><th>Feature</th><th>Population</th><th>Lat</th><th>Lon</th></tr>";
-		if (!(Object.prototype.toString.call(data) === '[object Array]')) {
-			data = [data];
-		}
 		for (i = 0; i < data.length; i++) {
 			var record = data[i];
 			var district = record.district ? record.district : 'N/A';
@@ -138,7 +138,7 @@ function parseResponse(data) {
 		//readd these guys to the map
 		map.addLayer(markers);
 	} else {
-		result = "There were no results found for your query."
+		result = "<h3>No results found for your query.</h3>";
 	}
 	$('#results-table').html(result);
 	$('.rowMarker').hover(function() {
