@@ -216,6 +216,23 @@
         attribution: 'Tiles: &copy; Esri'
     });
 
+    var orangeIcon = L.AwesomeMarkers.icon({
+        icon: 'star',
+        markerColor: 'orange'
+    });
+
+    var searchIcon = L.AwesomeMarkers.icon({
+        icon: 'search',
+        markerColor: 'green'
+    });
+
+    var redIcon = L.AwesomeMarkers.icon({
+        icon: 'star',
+        markerColor: 'red'
+    });
+
+    var defaultIcon = new L.Icon.Default();
+
     //add layer to map
     map.addLayer(streetMapLayer);
 
@@ -250,7 +267,9 @@
                 metric: false
             }, // Turns off this drawing tool
             rectangle: false,
-            marker: {}
+            marker: {
+                icon: searchIcon
+            }
         },
         edit: {
             featureGroup: editableLayers //REQUIRED!!
@@ -345,18 +364,6 @@
         editableLayers.clearLayers();
         window.geo = null;
     });
-
-    var orangeIcon = L.AwesomeMarkers.icon({
-        icon: 'star',
-        markerColor: 'orange'
-    });
-
-    var redIcon = L.AwesomeMarkers.icon({
-        icon: 'star',
-        markerColor: 'red'
-    });
-
-    var defaultIcon = new L.Icon.Default();
 
     $(document).ready(function() {
         $("#population-amount").keypress(function(e) {

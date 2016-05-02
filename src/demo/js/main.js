@@ -55,6 +55,10 @@ function buildFormData() {
 
 function submitData() {
 	var data = buildFormData();
+	var endpoint = '';
+	if('lat' in data && data.lat){
+		endpoint = '/geo';
+	}
 	$.ajax({
 		contentType: 'application/json',
 		data: JSON.stringify(data),
@@ -70,7 +74,7 @@ function submitData() {
 		},
 		processData: false,
 		type: 'POST',
-		url: '/api/search'
+		url: '/api/search'+endpoint
 	});
 };
 
@@ -125,7 +129,7 @@ function parseResponse(data) {
 				'</td><td>' + record.population + '</td><td>' + record.geo.latitude +
 				'</td><td>' + record.geo.longitude + '</td></tr>';
 			var marker = L.marker([record.geo.latitude, record.geo.longitude], {
-				id: record.geonameid
+				id: record.geonameid, frozen: false
 			});
 			marker.bindPopup('<p>' + name + '<br />Lat: ' + record.geo.latitude +
 				'<br />Lon: ' + record.geo.longitude + '</p>', {

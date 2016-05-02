@@ -23,5 +23,6 @@ if (geonameid && searchFunction === 'getLocationById') {
 	Moses.QueryFilter.translateFullResult(result);
 } else if (options && searchFunction === 'findLocationByPoint') {
 	options = options.toObject();
+	options.options.geo = null;
 	Moses.Location.findLocationByPoint(options.lat, options.lon, options.options);
 }
