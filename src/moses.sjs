@@ -383,7 +383,13 @@ Moses.QueryFilter = {
     return translatedDocs;
   },
   translateFullResult: function(results) {
-    var docs = results.toArray();
+    var docs;
+    if ((Object.prototype.toString.call(results) ===
+        '[object ValueIterator]')) {
+      docs = results.toArray();
+    } else {
+      docs = [results];
+    }
     var translatedDocs = [];
     for (i = 0; i < docs.length; i++) {
       var fullDoc = docs[i].toObject();
@@ -440,7 +446,7 @@ Moses.Location = {
     var radius = 1;
     var result;
     var andQuery = Moses.QueryFilter.parseFilterOptions(options);
-    while ((count > 1 || count < 1) && tries < 200 && radius < 25000) {
+    while ((count > 1 || count < 1) && tries < 50 && radius < 25000) {
       tries++;
       count = cts.estimate(cts.andQuery([cts.jsonPropertyPairGeospatialQuery(
         'geo', 'latitude', 'longitude', cts.circle(radius, cts.point(
@@ -455,8 +461,9 @@ Moses.Location = {
     }
     var results = cts.search(cts.andQuery([cts.jsonPropertyPairGeospatialQuery(
       'geo', 'latitude', 'longitude', cts.circle(radius, cts.point(
-        lat, lon))), cts.andQuery(andQuery)])).toArray();
-    if (results.length > 1) {
+        lat, lon))), cts.andQuery(andQuery)]));
+    if (results.count > 1) {
+      results = results.toArray();
       var distances = [];
       for (var i = 0; i < results.length; i++) {
         var longlat = results[i].toObject().geo;
@@ -464,11 +471,13 @@ Moses.Location = {
         var distance = Moses.geo.distance(cts.point(lat, lon), point)
         distances[i] = distance;
       }
-      result = results[distances.indexOf(Math.min.apply(null, distances))];
-    } else if (results.length < 1) {
-      result = {};
+      result = Moses.QueryFilter.translateFullResult(results[distances.indexOf(
+        Math.min.apply(null, distances))]);
+    } else if (results.count < 1) {
+      result = [];
     } else {
-      result = results[0];
+      result = Moses.QueryFilter.translateFullResult(fn.subsequence(results,
+        1, 1));
     }
     return result;
   },
@@ -646,9 +655,12 @@ Moses.Extract = {
       var word = wordList[i].word;
       var tag = wordList[i].tag;
       var replaceText = '';
+      var id = '';
       if (tag === 'NNPL') {
         var loc = Moses.Extract.resolveLocation(word);
-        var id = loc.clone().next().value.root.geonameid;
+        if (loc.count > 0) {
+          id = loc.clone().next().value.root.geonameid;
+        }
         replaceText += '<span class="highlight" geoid="' + id + '">' + word +
           '</span>';
         var re = new RegExp('(\\b' + word +

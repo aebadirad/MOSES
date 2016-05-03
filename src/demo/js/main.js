@@ -56,7 +56,7 @@ function buildFormData() {
 function submitData() {
 	var data = buildFormData();
 	var endpoint = '';
-	if('lat' in data && data.lat){
+	if ('lat' in data && data.lat) {
 		endpoint = '/geo';
 	}
 	$.ajax({
@@ -74,7 +74,7 @@ function submitData() {
 		},
 		processData: false,
 		type: 'POST',
-		url: '/api/search'+endpoint
+		url: '/api/search' + endpoint
 	});
 };
 
@@ -110,10 +110,12 @@ function parseResponse(data) {
 	var result = '';
 	// clear our markers if any were present
 	markers.clearLayers();
+	$('#results-table').html('');
 	window.markerStore = {};
 	if (!(Object.prototype.toString.call(data) === '[object Array]')) {
 		data = [data];
 	}
+	
 	if (data && data.length > 0) {
 		//create table headers
 		//result += 		"<tr id='results-header'><th>id</th><th>Name</th><th>Country</th><th>Province</th><th>District</th><th>Feature</th><th>Population</th><th>Lat</th><th>Lon</th></tr>";
@@ -129,7 +131,8 @@ function parseResponse(data) {
 				'</td><td>' + record.population + '</td><td>' + record.geo.latitude +
 				'</td><td>' + record.geo.longitude + '</td></tr>';
 			var marker = L.marker([record.geo.latitude, record.geo.longitude], {
-				id: record.geonameid, frozen: false
+				id: record.geonameid,
+				frozen: false
 			});
 			marker.bindPopup('<p>' + name + '<br />Lat: ' + record.geo.latitude +
 				'<br />Lon: ' + record.geo.longitude + '</p>', {
@@ -141,31 +144,32 @@ function parseResponse(data) {
 		}
 		//readd these guys to the map
 		map.addLayer(markers);
+		$('#results-table').html(result);
+		$('.rowMarker').hover(function() {
+			$(this).addClass("hover");
+			var id = $(this).attr('id');
+			var marker = window.markerStore[id]
+			if (!marker.frozen) {
+				marker.setIcon(orangeIcon);
+				marker.setZIndexOffset(999);
+			}
+		}, function() {
+			$(this).removeClass("hover");
+			var id = $(this).attr('id');
+			var marker = window.markerStore[id]
+			if (!marker.frozen) {
+				marker.setIcon(defaultIcon);
+				marker.setZIndexOffset(5);
+			}
+		});
+		$('.rowMarker').click(function() {
+			var id = $(this).attr('id');
+			toggleMarker(id);
+		});
 	} else {
 		result = "<h3>No results found for your query.</h3>";
+		$('#results-table').html(result);
 	}
-	$('#results-table').html(result);
-	$('.rowMarker').hover(function() {
-		$(this).addClass("hover");
-		var id = $(this).attr('id');
-		var marker = window.markerStore[id]
-		if (!marker.frozen) {
-			marker.setIcon(orangeIcon);
-			marker.setZIndexOffset(999);
-		}
-	}, function() {
-		$(this).removeClass("hover");
-		var id = $(this).attr('id');
-		var marker = window.markerStore[id]
-		if (!marker.frozen) {
-			marker.setIcon(defaultIcon);
-			marker.setZIndexOffset(5);
-		}
-	});
-	$('.rowMarker').click(function() {
-		var id = $(this).attr('id');
-		toggleMarker(id);
-	});
 };
 
 function toggleMarker(id) {
