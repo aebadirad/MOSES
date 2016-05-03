@@ -143,9 +143,14 @@ Moses.Country = {
     ])).toArray()[0].root;
   },
   getCountryNameByCode: function(code) {
-    return cts.search(cts.andQuery([cts.collectionQuery('country'),
+    var result = null;
+    var country = cts.search(cts.andQuery([cts.collectionQuery('country'),
       cts.jsonPropertyRangeQuery('iso', '=', code)
-    ])).toArray()[0].root.country;
+    ])).toArray();
+    if (country.length > 0) {
+      result = country[0].root.country;
+    }
+    return result;
   },
   getCountryByName: function(name) {
     return cts.search(cts.andQuery([cts.collectionQuery('country'),
@@ -305,11 +310,12 @@ Moses.QueryFilter = {
         ]));
     }
     if ('name' in options && 'fuzzy' in options && options.name && options.fuzzy) {
-      comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
-        options.name, ['case-insensitive', 'diacritic-insensitive',
-          'punctuation-insensitive', 'whitespace-sensitive',
-          'wildcarded'
-        ]));
+      comboQuery.push(cts.jsonPropertyWordQuery(['asciiname', 'name',
+        'alternatenames'
+      ], options.name, ['case-insensitive', 'diacritic-insensitive',
+        'punctuation-insensitive', 'whitespace-sensitive',
+        'wildcarded'
+      ]));
     }
     if ('geo' in options && options.geo) {
       var geoShape;
