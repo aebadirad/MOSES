@@ -9,23 +9,14 @@ if (body && searchFunction === 'extractLocations') {
 } else if (body && searchFunction === 'confirmLocations') {
 	var text = body.toObject().text;
 	var nouns = Moses.Extract.getNouns(text);
-	Moses.Extract.getLocationsfromNouns(nouns);
+	Moses.Extract.findPlaceNouns(nouns);
 } else if (body && searchFunction === 'resolveLocations') {
 	var text = body.toObject().text;
-	var enrichedText = Moses.Extract.getRaw(text);
-	var nouns = Moses.Extract.getNouns(text);
-	var locations = Moses.Extract.getLocationsfromNouns(nouns);
-	var resolved = Moses.Extract.resolveLocations(locations);
-	for (i = 0; i < locations.length; i++) {
-		var highlight = '<span class="highlight" geoid="' + resolved[i].geonameid +
-			'" title="' + resolved[i].asciiname.replace("'", '') + '">' + locations[i] +
-			'</span>';
-		enrichedText = enrichedText.replace('<span class="NNP">' + locations[i] +
-			'</span>', highlight);
+	var response = Moses.Extract.enrichText(text);
+	var p = []
+	for (var i in response.records) {
+		p.push(Moses.QueryFilter.translateFullResult(response.records[i]))
 	}
-	var response = {
-		'records': resolved,
-		'text': enrichedText
-	};
+	response.records = p;
 	response;
 }

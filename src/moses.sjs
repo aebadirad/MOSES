@@ -493,36 +493,69 @@ Moses.Location = {
 };
 Moses.Extract = {
   name: 'Extract',
-  getNouns: function(text) {
+  tagWords: function(text) {
+    var result = [];
     var words = new Moses.pos.Lexer().lex(text);
-    result = [];
     var tagger = new Moses.pos.Tagger();
     var taggedWords = tagger.tag(words);
-    var lastTag = '';
-    var lastType = '';
     for (i in taggedWords) {
       var taggedWord = taggedWords[i];
       var word = taggedWord[0];
       var tag = taggedWord[1];
-      if (tag === 'NNP') {
-        if (lastTag === 'NNP') {
+      if (tag === 'NN' && cts.estimate(cts.jsonPropertyValueQuery('word',
+          word)) == 0) {
+        result.push([word, 'NNP']);
+      } else {
+        result.push([word, tag]);
+      }
+    }
+    return result;
+  },
+  getNouns: function(text) {
+    var result = [];
+    var taggedWords = Moses.Extract.tagWords(text);
+    var lastTag = '';
+    var lastType = '';
+    var lWord = '';
+    for (i in taggedWords) {
+      var taggedWord = taggedWords[i];
+      var word = taggedWord[0];
+      var tag = taggedWord[1];
+      if (tag === 'NNP' || tag === 'IN') {
+        if (lastTag === 'NNP' || (tag === 'IN' && word.toLowerCase() ===
+            'of' && lastTag === 'NNP') || (lastTag === 'IN' && tag ===
+            'NNP' && lWord.toLowerCase() === 'of' && result[result.length -
+              1].word.indexOf(' ') >= 0)) {
           var count = result.length - 1;
-          var lastWord = result[count];
+          var lastWord = result[count].word;
           var joiner = '';
           if (lastType === 'word') {
             joiner = ' ';
           }
-          result[count] = lastWord + joiner + word;
+          result[count] = {
+            tag: tag,
+            word: lastWord + joiner + word
+          };
         } else {
-          result.push(word);
+          result.push({
+            tag: tag,
+            word: word
+          });
         }
+      } else {
+        result.push({
+          tag: tag,
+          word: word
+        });
       }
       if (word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
         lastTag = tag;
         lastType = "word";
       } else {
         lastType = "punctuation";
+        lastTag = tag;
       }
+      lWord = word;
     }
     return result;
   },
@@ -566,29 +599,69 @@ Moses.Extract = {
     }
     return result.join('');
   },
-  getLocationsfromNouns: function(nouns) {
+  findPlaceNouns: function(nouns) {
     var foundNouns = [];
     for (i = 0; i < nouns.length; i++) {
-      var found = cts.estimate(cts.andQuery([cts.directoryQuery(
-          '/locations/'),
-        cts.jsonPropertyValueQuery('asciiname', nouns[i])
-      ]))
-      if (found > 0) {
-        foundNouns.push(nouns[i]);
+      var word = nouns[i].word;
+      var tag = nouns[i].tag;
+      if (tag === 'NNP') {
+        var found = cts.estimate(cts.andQuery([cts.directoryQuery(
+            '/locations/'),
+          cts.jsonPropertyValueQuery('asciiname', word)
+        ]));
+        if (found > 0) {
+          foundNouns.push({
+            word: word,
+            tag: 'NNPL'
+          });
+        } else {
+          foundNouns.push({
+            word: word,
+            tag: tag
+          });
+        }
+      } else {
+        foundNouns.push({
+          word: word,
+          tag: tag
+        });
       }
     }
     return foundNouns;
   },
-  resolveLocations: function(foundNouns) {
-    var locations = []
-    for (i = 0; i < foundNouns.length; i++) {
-      locations.push(fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
-        '/locations/'), cts.jsonPropertyWordQuery([
-        'alternatenames', 'asciiname'
-      ], foundNouns[i])]), [cts.indexOrder(cts.jsonPropertyReference(
-        'population', []), 'descending')]), 1, 1).next().value);
+  resolveLocation: function(foundNoun) {
+    return fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
+      'alternatenames'
+    ], foundNoun)]), [cts.indexOrder(cts.jsonPropertyReference(
+      'population', []), 'descending')]), 1, 1);
+  },
+  resolveLocations: function(wordList, text) {
+    var response = {
+      records: [],
+      text: text
+    };
+    for (i = 0; i < wordList.length; i++) {
+      var word = wordList[i].word;
+      var tag = wordList[i].tag;
+      var loc = null;
+      var id = null;
+      var replaceText = '';
+      if (tag === 'NNPL') {
+        loc = Moses.Extract.resolveLocation(word);
+        response.records.push(loc);
+        replaceText += '<span class="highlight" geoid="' + loc.geonameid +
+          '">' + word + '</span>';
+        var re = new RegExp('(\\b' + word + '\\b)(?![^<]*>|[^<>]*<\\/|[]*-)');
+        response.text = response.text.replace(re, replaceText);
+      }
     }
-    return Moses.QueryFilter.translateAdminCodes(locations);
+    return response;
+  },
+  enrichText: function(text) {
+    var locs = Moses.Extract.getNouns(text)
+    var places = Moses.Extract.findPlaceNouns(locs);
+    return Moses.Extract.resolveLocations(places, text);
   }
 };
 module.exports = Moses;
