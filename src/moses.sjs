@@ -641,19 +641,23 @@ Moses.Extract = {
       records: [],
       text: text
     };
+    var idList = [];
     for (i = 0; i < wordList.length; i++) {
       var word = wordList[i].word;
       var tag = wordList[i].tag;
-      var loc = null;
-      var id = null;
       var replaceText = '';
       if (tag === 'NNPL') {
-        loc = Moses.Extract.resolveLocation(word);
-        response.records.push(loc);
-        replaceText += '<span class="highlight" geoid="' + loc.geonameid +
-          '">' + word + '</span>';
-        var re = new RegExp('(\\b' + word + '\\b)(?![^<]*>|[^<>]*<\\/|[]*-)');
+        var loc = Moses.Extract.resolveLocation(word);
+        var id = loc.clone().next().value.root.geonameid;
+        replaceText += '<span class="highlight" geoid="' + id + '">' + word +
+          '</span>';
+        var re = new RegExp('(\\b' + word +
+          '\\b)(?![^<]*>|[^<>]*<\\/|[]*-)');
         response.text = response.text.replace(re, replaceText);
+        if (idList.indexOf(word) === -1) {
+          idList.push(word);
+          response.records.push(loc);
+        }
       }
     }
     return response;
