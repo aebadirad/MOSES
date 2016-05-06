@@ -515,16 +515,24 @@ Moses.Extract = {
       var word = taggedWord[0];
       var tag = taggedWord[1];
       var count = result.length - 1;
-      var backpeek = String(taggedWords[i - 1]).split(",");
-      var peek = String(taggedWords[i + 1]).split(",");
-      var peek2 = String(taggedWords[i + 3]).split(",");
+      var oneBehind = 0;
+      oneBehind = i;
+      oneBehind--;
+      var backpeek = taggedWords[oneBehind];
+      var oneAhead = 0;
+      oneAhead = i;
+      oneAhead++;
+      twoAhead = oneAhead + 1;
+      var peek = taggedWords[oneAhead];
+      var peek2 = taggedWords[twoAhead];
       //all junk responses go here
       if (word === "$" || word === "@" || word === '^' || word === '--' || word === '\\' ||
         word === 'A' || word === 'I' || word === '/' || word === "%" || word === "*") {
         tag = 'JUNK';
       }
       if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===
-          'NNS' && peek2[1] === 'NNP')) && word[0] === word[0].toUpperCase()) {
+          'NNS' && peek2[1] === 'NNP') || (tag === 'JJ' && peek[1] === 'NNP')) && word[0] ===
+        word[0].toUpperCase()) {
         tag = 'NNP';
       }
       if ((tag === 'VBN' && peek[1] === 'NNP' && word[0] === word[0].toUpperCase()) ||
