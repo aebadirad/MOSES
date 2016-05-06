@@ -83675,7 +83675,7 @@ module.exports = {
         "JJ"
     ], 
     "September": [
-        "NNP"
+        "NNPD"
     ], 
     "Torah": [
         "NNP"
@@ -138282,7 +138282,7 @@ module.exports = {
         "NNP"
     ], 
     "December": [
-        "NNP"
+        "NNPD"
     ], 
     "Vice-President": [
         "NNP"
@@ -141490,7 +141490,7 @@ module.exports = {
         "JJ"
     ], 
     "October": [
-        "NNP"
+        "NNPD"
     ], 
     "reworking": [
         "NN"
@@ -157371,7 +157371,7 @@ module.exports = {
         "NN"
     ], 
     "February": [
-        "NNP"
+        "NNPD"
     ], 
     "repeat": [
         "VB", 
@@ -168483,7 +168483,7 @@ module.exports = {
         "NNP"
     ], 
     "January": [
-        "NNP"
+        "NNPD"
     ], 
     "spike": [
         "NN", 
@@ -175430,7 +175430,7 @@ module.exports = {
         "JJ"
     ], 
     "November": [
-        "NNP"
+        "NNPD"
     ], 
     "Valmet": [
         "NN"
@@ -249962,7 +249962,7 @@ module.exports = {
         "NNP"
     ], 
     "June": [
-        "NNP"
+        "NNPD"
     ], 
     "Jung": [
         "NNP"
@@ -288093,7 +288093,7 @@ module.exports = {
         "VBZ"
     ], 
     "Marche": [
-        "NNP"
+        "NNPD"
     ], 
     "Barbanell": [
         "NNP"
