@@ -73006,8 +73006,8 @@ module.exports = {
         "NNS"
     ], 
     "States": [
-        "NNPS", 
         "NNP", 
+        "NNPS", 
         "NNS"
     ], 
     "Stater": [
@@ -297827,5 +297827,50 @@ module.exports = {
     ], 
     "jawbone": [
         "NN"
+    ], 
+    "Monday": [
+        "NNPD"
+    ], 
+    "Tuesday": [
+        "NNPD"
+    ], 
+    "Wednesday": [
+        "NNPD"
+    ], 
+    "Thursday": [
+        "NNPD"
+    ], 
+    "Friday": [
+        "NNPD"
+    ], 
+    "Saturday": [
+        "NNPD"
+    ], 
+    "Sunday": [
+        "NNPD"
+    ], 
+    "West": [
+        "NNPD"
+    ], 
+    "Western": [
+        "NNPD"
+    ], 
+    "Eastern": [
+        "NNPD"
+    ], 
+    "East": [
+        "NNPD"
+    ],
+    "May": [
+        "NNPD"
+    ],
+    "April": [
+        "NNPD"
+    ],
+    "July": [
+        "NNPD"
+    ],
+    "August": [
+        "NNPD"
     ]
 };

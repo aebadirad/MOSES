@@ -515,24 +515,48 @@ Moses.Extract = {
       var word = taggedWord[0];
       var tag = taggedWord[1];
       var count = result.length - 1;
-      if (tag === 'NN' && (cts.estimate(cts.jsonPropertyValueQuery('word',
-          word, ['exact'])) === 0)) {
+      var backpeek = String(taggedWords[i - 1]).split(",");
+      var peek = String(taggedWords[i + 1]).split(",");
+      var peek2 = String(taggedWords[i + 3]).split(",");
+      //all junk responses go here
+      if (word === '--' || word === '\\') {
+        tag = 'JUNK';
+      }
+      if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===
+          'NNS' && peek2[1] === 'NNP')) && word[0] === word[0].toUpperCase()) {
+        tag = 'NNP';
+      }
+      if ((tag === 'VBN' && peek[1] === 'NNP' && word[0] === word[0].toUpperCase()) ||
+        (lastTag === 'NNP' && tag === 'NNPS' && word[0] === word[0].toUpperCase())
+      ) {
+        tag = 'NNP';
+      }
+      if (tag === 'NN') {
+        var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word, [
+          'exact'
+        ]));
+        if (matches == 0) {
+          tag = 'NNP';
+        }
+      }
+      if (tag === 'PRP' && word.length > 1 && word === word.toUpperCase()) {
         result.push({
           word: word,
           tag: 'NNP'
         });
-      } else if (tag === 'PRP' && word === word.toUpperCase()) {
-        result.push({
-          word: word,
-          tag: 'NNP'
-        });
-      } else if (word.length === 1 && tag === 'NNP') {
+      } else if (tag === 'NNP') {
         var NNPCount = 1;
         var nextWord = taggedWords[i + 1];
         var combinedWords = word;
-        while (nextWord[0] === "." || nextWord[1] === 'NNP') {
+        while ((nextWord && i < taggedWords.length) && (nextWord[0] === "." ||
+            nextWord[0] === "'" || nextWord[1] === 'PRP' || nextWord[1] ===
+            'NNP' || (nextWord[1] === 'NN' && nextWord[0][0] === nextWord[0]
+              [0].toUpperCase()))) {
           if (nextWord[0].length > 1) {
             combinedWords += ' ';
+          }
+          if (nextWord[1] === 'PRP' && taggedWords[i][0] === ".") {
+            break;
           }
           combinedWords += nextWord[0];
           i++;
@@ -605,6 +629,24 @@ Moses.Extract = {
           tag: tag,
           word: lastWord
         };
+      } else if (tag === 'NN' && (word[0] === word[0].toUpperCase()) && (
+          cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+            'exact'
+          ])) === 0) && lastTag !== ".") {
+        var matches = cts.estimate(cts.andQuery([cts.directoryQuery(
+            '/locations/'),
+          cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+            word, ['whitespace-sensitive', 'case-insensitive',
+              'unwildcarded'
+            ])
+        ]));
+        if (matches > 0) {
+          tag = 'NNP';
+        }
+        result.push({
+          tag: tag,
+          word: word
+        });
       } else {
         result.push({
           tag: tag,
@@ -664,23 +706,41 @@ Moses.Extract = {
   },
   findPlaceNouns: function(nouns) {
     var foundNouns = [];
+    var failed = '';
     for (i = 0; i < nouns.length; i++) {
       var word = nouns[i].word;
       var tag = nouns[i].tag;
       if (tag === 'NNP') {
-        var found = cts.estimate(cts.andQuery([cts.directoryQuery(
-            '/locations/'),
-          cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
-            word, ['whitespace-sensitive', 'case-insensitive',
-              'unwildcarded'
-            ])
-        ]));
+        var caseSense = 'case-insensitive';
+        if (word[0] === word[0].toUpperCase() || word === word.toUpperCase()) {
+          caseSense = 'case-sensitive';
+        }
+        word = word.trim();
+        if (word.substr(word.length - 2, 2) === "'s") {
+          word = word.substr(0, word.length - 2);
+        }
+        if (word.substr(word.length - 1, 1) === "'" || word.substr(word.length -
+            1, 1) === ".") {
+          word = word.substr(0, word.length - 1);
+        }
+        var found = 0;
+        var failedArray = failed.split(" ");
+        if (failedArray.indexOf(word) === -1) {
+          found = cts.estimate(cts.andQuery([cts.directoryQuery(
+              '/locations/'),
+            cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+              word, ['whitespace-sensitive', caseSense,
+                'unwildcarded'
+              ])
+          ]));
+        }
         if (found > 0) {
           foundNouns.push({
             word: word,
             tag: 'NNPL'
           });
         } else {
+          failed += ' ' + word;
           foundNouns.push({
             word: word,
             tag: tag
@@ -697,10 +757,13 @@ Moses.Extract = {
   },
   resolveLocation: function(foundNoun) {
     return fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
+      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
       'alternatenames'
-    ], foundNoun)]), [cts.indexOrder(cts.jsonPropertyReference(
-      'population', []), 'descending')]), 1, 1);
+    ], foundNoun, ['case-sensitive', 'whitespace-sensitive',
+      'unwildcarded', 'punctuation-insensitive'
+    ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+      'descending'), cts.indexOrder(cts.jsonPropertyReference(
+      'geonameid', []), 'ascending')]), 1, 1);
   },
   resolveLocations: function(wordList, text) {
     var response = {
@@ -733,15 +796,17 @@ Moses.Extract = {
         if (loc.count > 0) {
           id = loc.clone().next().value.root.geonameid;
         }
-        replaceText += '<span class="highlight" geoid="' + id + '">' + word +
-          '</span>';
-        var re = new RegExp('(\\b' + word.replace(
-            /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&") +
-          ')(?![^<]*>|[^<>]*<\\/|[]*-)');
-        response.text = response.text.replace(re, replaceText);
-        if (idList.indexOf(word) === -1) {
-          idList.push(word);
-          response.records.push(loc);
+        if (id) {
+          replaceText += '<span class="highlight" geoid="' + id + '">' +
+            word + '</span>';
+          var re = new RegExp('(\\b' + word.replace(
+              /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&") +
+            ')(?![^<]*>|[^<>]*<\\/|[]*-)');
+          response.text = response.text.replace(re, replaceText);
+          if (idList.indexOf(word) === -1) {
+            idList.push(word);
+            response.records.push(loc);
+          }
         }
       }
     }
