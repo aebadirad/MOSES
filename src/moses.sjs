@@ -555,6 +555,17 @@ Moses.Extract = {
           word: word,
           tag: 'NNP'
         });
+      } else if (lastTag === "." && tag === 'NNP') {
+        var commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+          'exact'
+        ]));
+        if (commonMatches > 0) {
+          tag = 'NN';
+        }
+        result.push({
+          word: word,
+          tag: tag
+        });
       } else if (tag === 'NNP') {
         var NNPCount = 1;
         var nextWord = taggedWords[i + 1];
@@ -563,13 +574,14 @@ Moses.Extract = {
             nextWord[0] === "'" || nextWord[1] === 'PRP' || nextWord[1] ===
             'NNP' || (nextWord[1] === 'NN' && nextWord[0][0] === nextWord[0]
               [0].toUpperCase()))) {
-          var commonMatches =  cts.estimate(cts.jsonPropertyValueQuery('word', nextWord[0].toLowerCase(), [
-              'exact'
-            ]));
+          var commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', nextWord[0].toLowerCase(), [
+            'exact'
+          ]));
           if (nextWord[0].length > 1) {
             combinedWords += ' ';
           }
-          if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[0].length > 1)) && taggedWords[i][0] === ".") {
+          if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[
+              0].length > 1)) && taggedWords[i][0] === ".") {
             break;
           }
           combinedWords += nextWord[0];
@@ -608,7 +620,8 @@ Moses.Extract = {
       var tag = taggedWord.tag;
       var count = result.length - 1;
       if (tag === 'NNP' || tag === 'IN') {
-        if ((lastTag === 'NNP' && tag === 'NNP' && lWord.slice(-1) !== ".")|| (tag === 'IN' && word.toLowerCase() ===
+        if ((lastTag === 'NNP' && tag === 'NNP' && lWord.slice(-1) !== ".") || (tag === 'IN' &&
+            word.toLowerCase() ===
             'of' && lastTag === 'NNP') || (lastTag === 'IN' && tag ===
             'NNP' && lWord.toLowerCase() === 'of' && result[result.length -
               1].word.indexOf(' ') >= 0)) {
@@ -892,7 +905,8 @@ Moses.Extract = {
       var b = 0;
       b = b + i;
       b--;
-      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+      var lastPlace = places[b];
+      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}\)=\-_`~]/g, "")) {
         if (places[i].word === '"') {
           if (quoted === false) {
             quoted = true;
@@ -903,8 +917,11 @@ Moses.Extract = {
           text += joiner + place;
 
         } else {
-          if (!(quoted === true && places[b].word === "\"")) {
+          if ((!(quoted === true && text.slice(-1) === '"'))) {
             joiner = ' ';
+          }
+          if(text.slice(-1) === '(' || text.slice(-1) === '-'){
+            joiner = '';
           }
           text += joiner + place;
         }

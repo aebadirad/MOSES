@@ -141574,7 +141574,7 @@ module.exports = {
         "NN"
     ], 
     "Media": [
-        "NNP", 
+        "NNPT", 
         "NN", 
         "NNS", 
         "NNPS"
@@ -141635,7 +141635,7 @@ module.exports = {
         "VB"
     ], 
     "Fruit": [
-        "NNP", 
+        "NNPT", 
         "NN"
     ], 
     "Shvartzer": [
@@ -141810,7 +141810,7 @@ module.exports = {
         "NNS"
     ], 
     "Linger": [
-        "NNP", 
+        "NNPV", 
         "VB"
     ], 
     "buffetings": [
@@ -141858,7 +141858,7 @@ module.exports = {
         "JJ"
     ], 
     "Contest": [
-        "NNP", 
+        "NNPT", 
         "NN"
     ], 
     "cross-examination": [
@@ -141882,7 +141882,7 @@ module.exports = {
     ], 
     "Save": [
         "VB", 
-        "NNP", 
+        "NNPT", 
         "IN", 
         "RB"
     ], 
@@ -142066,7 +142066,7 @@ module.exports = {
         "NNP"
     ], 
     "Cult": [
-        "NNP", 
+        "NNPT", 
         "NN"
     ], 
     "Leonel": [
@@ -142181,14 +142181,14 @@ module.exports = {
         "NNP"
     ], 
     "Funeral": [
-        "NNP", 
+        "NNPT", 
         "NN"
     ], 
     "mourners": [
         "NNS"
     ], 
     "Multifoods": [
-        "NNP", 
+        "NNPT", 
         "NNPS"
     ], 
     "Merrick": [
@@ -241995,7 +241995,6 @@ module.exports = {
         "NNP"
     ], 
     "Support": [
-        "NNP", 
         "NN"
     ], 
     "stimulators": [
