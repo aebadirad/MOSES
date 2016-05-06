@@ -519,7 +519,7 @@ Moses.Extract = {
       var peek = String(taggedWords[i + 1]).split(",");
       var peek2 = String(taggedWords[i + 3]).split(",");
       //all junk responses go here
-      if (word === '--' || word === '\\') {
+      if (word === '--' || word === '\\' || word === 'A' || word === 'I' || word === '/') {
         tag = 'JUNK';
       }
       if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===

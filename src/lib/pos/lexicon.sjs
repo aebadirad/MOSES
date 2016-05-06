@@ -31746,8 +31746,8 @@ module.exports = {
         "VBP"
     ], 
     "Pink": [
-        "NNP", 
         "JJ", 
+        "NNP", 
         "NN"
     ], 
     "Bokat": [
@@ -110026,7 +110026,7 @@ module.exports = {
         "VBD"
     ], 
     "Crews": [
-        "NNP"
+        "NNS"
     ], 
     "neurasthenic": [
         "NN"
