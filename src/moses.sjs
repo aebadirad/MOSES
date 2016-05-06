@@ -812,10 +812,100 @@ Moses.Extract = {
     }
     return response;
   },
+  rebuildFromTags: function(places) {
+    var string = '';
+    var quoted = false;
+    for (i in places) {
+      var joiner = '';
+      var b = 0;
+      b = b + i;
+      b--;
+      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+        if (places[i].word === '"') {
+          if (quoted === false) {
+            quoted = true;
+            joiner = ' ';
+          } else {
+            quoted = false;
+          }
+          string += joiner + places[i].word;
+
+        } else {
+          if (!(quoted === true && places[b].word === "\"")) {
+            joiner = ' ';
+          }
+          string += joiner + places[i].word;
+        }
+      } else {
+
+        string += places[i].word;
+      }
+    }
+    return string.trim()
+
+  },
+  resolveEnrichedText: function(places) {
+    var response = {
+      records: [],
+      text: ''
+    }
+
+    var text = '';
+    var quoted = false;
+    var idList = [];
+    for (i in places) {
+      var place = places[i].word;
+      var tag = places[i].tag;
+      var id;
+      if (tag === 'NNPL') {
+        var loc = Moses.Extract.resolveLocation(place);
+        if (loc.count > 0) {
+          id = loc.clone().next().value.root.geonameid;
+        }
+        if (id) {
+          if (idList.indexOf(place) === -1) {
+            idList.push(place);
+            response.records.push(loc);
+          }
+          place = '<span class="' + tag + ' highlight" geoid="' + id + '">' + places[i].word +
+            '</span>';
+        }
+      }
+      if (tag === 'NNP') {
+        place = '<span class="' + tag + '">' + places[i].word + '</span>';
+      }
+      var joiner = '';
+      var b = 0;
+      b = b + i;
+      b--;
+      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+        if (places[i].word === '"') {
+          if (quoted === false) {
+            quoted = true;
+            joiner = ' ';
+          } else {
+            quoted = false;
+          }
+          text += joiner + place;
+
+        } else {
+          if (!(quoted === true && places[b].word === "\"")) {
+            joiner = ' ';
+          }
+          text += joiner + place;
+        }
+      } else {
+
+        text += place;
+      }
+    }
+    response.text = text.trim();
+    return response;
+  },
   enrichText: function(text) {
     var locs = Moses.Extract.getNouns(text)
     var places = Moses.Extract.findPlaceNouns(locs);
-    return Moses.Extract.resolveLocations(places, text);
+    return Moses.Extract.resolveEnrichedText(places);
   }
 };
 module.exports = Moses;
