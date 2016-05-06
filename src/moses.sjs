@@ -707,6 +707,21 @@ Moses.Extract = {
       records: [],
       text: text
     };
+    var nonNNPL = wordList.filter(function(word) {
+      return word.tag !== "NNPL";
+    });
+    for (i = 0; i < nonNNPL.length; i++) {
+      var word = nonNNPL[i].word;
+      var tag = nonNNPL[i].tag;
+      var replaceText = '';
+      if (tag === 'NNP' || tag === 'NN' || tag === 'NNS') {
+        replaceText += ' <span class="' + tag + '">' + word + '</span>';
+        var re = new RegExp('(\\b' + ' ' + word.replace(
+            /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&") +
+          ')(?![^<]*>|[^<>]*<\\/|[]*-)');
+        response.text = response.text.replace(re, replaceText);
+      }
+    }
     var idList = [];
     for (i = 0; i < wordList.length; i++) {
       var word = wordList[i].word;
@@ -720,8 +735,9 @@ Moses.Extract = {
         }
         replaceText += '<span class="highlight" geoid="' + id + '">' + word +
           '</span>';
-        var re = new RegExp('(\\b' + word +
-          '\\b)(?![^<]*>|[^<>]*<\\/|[]*-)');
+        var re = new RegExp('(\\b' + word.replace(
+            /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&") +
+          ')(?![^<]*>|[^<>]*<\\/|[]*-)');
         response.text = response.text.replace(re, replaceText);
         if (idList.indexOf(word) === -1) {
           idList.push(word);
