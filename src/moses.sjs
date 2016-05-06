@@ -906,7 +906,7 @@ Moses.Extract = {
       b = b + i;
       b--;
       var lastPlace = places[b];
-      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}\)=\-_`~]/g, "")) {
+      if (places[i].word.replace(/[.,\/#!$%\^&\*;:{}\)=\-_`'~]/g, "")) {
         if (places[i].word === '"') {
           if (quoted === false) {
             quoted = true;
@@ -920,7 +920,7 @@ Moses.Extract = {
           if ((!(quoted === true && text.slice(-1) === '"'))) {
             joiner = ' ';
           }
-          if(text.slice(-1) === '(' || text.slice(-1) === '-'){
+          if(text.slice(-1) === '(' || text.slice(-1) === '-' || (text.slice(-1) === "'" && place.length === 1)){
             joiner = '';
           }
           text += joiner + place;

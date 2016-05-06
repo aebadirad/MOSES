@@ -88331,7 +88331,7 @@ module.exports = {
         "NNP"
     ], 
     "God": [
-        "NNP", 
+        "NNPP", 
         "UH"
     ], 
     "Gog": [
@@ -157327,7 +157327,7 @@ module.exports = {
         "NN"
     ], 
     "Darwin": [
-        "NNP"
+        "NNPP"
     ], 
     "nursed": [
         "VBD"
@@ -172961,7 +172961,7 @@ module.exports = {
         "NNS"
     ], 
     "Christian": [
-        "NNP", 
+        "NNPO", 
         "NNS", 
         "JJ", 
         "NN"
