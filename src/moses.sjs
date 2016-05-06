@@ -529,7 +529,8 @@ Moses.Extract = {
       //yeaaah this is gonna need to be its own regex or array kept elsewhere. This is silly.
       if (word === '£' || word === "$" || word === "@" || word === '^' || word === '--' || word ===
         '\\' ||
-        word === 'A' || word === 'I' || word === '/' || word === "%" || word === "*") {
+        ((word === 'A' || word === 'I') && peek !== '.') || word === '/' || word === "%" ||
+        word === "*") {
         tag = 'JUNK';
       }
       if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===
@@ -574,10 +575,11 @@ Moses.Extract = {
             nextWord[0] === "'" || nextWord[1] === 'PRP' || nextWord[1] ===
             'NNP' || (nextWord[1] === 'NN' && nextWord[0][0] === nextWord[0]
               [0].toUpperCase()))) {
-          var commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', nextWord[0].toLowerCase(), [
-            'exact'
-          ]));
+          var commonMatches = 0;
           if (nextWord[0].length > 1) {
+            commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', nextWord[0].toLowerCase(), [
+              'exact'
+            ]));
             combinedWords += ' ';
           }
           if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[
@@ -743,11 +745,14 @@ Moses.Extract = {
           caseSense = 'case-sensitive';
         }
         word = word.trim();
+        var clipped = '';
         if (word.substr(word.length - 2, 2) === "'s") {
+          clipped = word.substr(word.length - 2, 2);
           word = word.substr(0, word.length - 2);
         }
         if (word.substr(word.length - 1, 1) === "'" || word.substr(word.length -
             1, 1) === ".") {
+          clipped = word.substr(word.length - 1, 1);
           word = word.substr(0, word.length - 1);
         }
         var found = 0;
@@ -763,13 +768,13 @@ Moses.Extract = {
         }
         if (found > 0) {
           foundNouns.push({
-            word: word,
+            word: word+clipped,
             tag: 'NNPL'
           });
         } else {
           failed += ' ' + word;
           foundNouns.push({
-            word: word,
+            word: word+clipped,
             tag: tag
           });
         }
@@ -920,7 +925,8 @@ Moses.Extract = {
           if ((!(quoted === true && text.slice(-1) === '"'))) {
             joiner = ' ';
           }
-          if(text.slice(-1) === '(' || text.slice(-1) === '-' || (text.slice(-1) === "'" && place.length === 1)){
+          if (text.slice(-1) === '(' || text.slice(-1) === '-' || (text.slice(-1) === "'" &&
+              place.length === 1)) {
             joiner = '';
           }
           text += joiner + place;
