@@ -6314,8 +6314,8 @@ module.exports = {
     "most-watched": [
         "JJ"
     ], 
-    "U.S.$": [
-        "$"
+    "U.S.": [
+        "NNP"
     ], 
     "cardholders": [
         "NNS"

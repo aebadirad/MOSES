@@ -4,7 +4,6 @@
 //core of MOSES. In fact, you could just include moses.sjs into your project
 //if you want it to run server-side in your own service.
 var Moses = require('/moses.sjs');
-var Utils = require('lib/utils.sjs')
 	//let's grab our request field variables so we can see what's being requested
 var searchFunction = xdmp.getRequestField("function");
 var geonameid = xdmp.getRequestField("id");

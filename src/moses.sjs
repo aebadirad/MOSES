@@ -503,19 +503,57 @@ Moses.Location = {
 Moses.Extract = {
   name: 'Extract',
   tagWords: function(text) {
-    var result = [];
+    var result = new Array();
     var words = new Moses.pos.Lexer().lex(text);
     var tagger = new Moses.pos.Tagger();
     var taggedWords = tagger.tag(words);
-    for (i in taggedWords) {
+    var lastWord = '';
+    var lastTag = '';
+    var lastType = '';
+    for (i = 0; i < taggedWords.length; i++) {
       var taggedWord = taggedWords[i];
       var word = taggedWord[0];
       var tag = taggedWord[1];
-      if (tag === 'NN' && cts.estimate(cts.jsonPropertyValueQuery('word',
-          word)) == 0) {
-        result.push([word, 'NNP']);
+      var count = result.length - 1;
+      if (tag === 'NN' && (cts.estimate(cts.jsonPropertyValueQuery('word',
+          word, ['exact'])) === 0)) {
+        result.push({
+          word: word,
+          tag: 'NNP'
+        });
+      } else if (tag === 'PRP' && word === word.toUpperCase()) {
+        result.push({
+          word: word,
+          tag: 'NNP'
+        });
+      } else if (word.length === 1 && tag === 'NNP') {
+        var NNPCount = 1;
+        var nextWord = taggedWords[i + 1];
+        var combinedWords = word;
+        while (nextWord[0] === "." || nextWord[1] === 'NNP') {
+          if (nextWord[0].length > 1) {
+            combinedWords += ' ';
+          }
+          combinedWords += nextWord[0];
+          i++;
+          nextWord = taggedWords[i + 1];
+        }
+        result.push({
+          word: combinedWords,
+          tag: 'NNP'
+        });
       } else {
-        result.push([word, tag]);
+        result.push({
+          word: word,
+          tag: tag
+        });
+      }
+      lastWord = word;
+      lastTag = tag;
+      if (word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")) {
+        lastType = 'word';
+      } else {
+        lastType = 'punc';
       }
     }
     return result;
@@ -528,14 +566,14 @@ Moses.Extract = {
     var lWord = '';
     for (i in taggedWords) {
       var taggedWord = taggedWords[i];
-      var word = taggedWord[0];
-      var tag = taggedWord[1];
+      var word = taggedWord.word;
+      var tag = taggedWord.tag;
+      var count = result.length - 1;
       if (tag === 'NNP' || tag === 'IN') {
-        if (lastTag === 'NNP' || (tag === 'IN' && word.toLowerCase() ===
+        if (lastTag === 'NNP' && tag === 'NNP' || (tag === 'IN' && word.toLowerCase() ===
             'of' && lastTag === 'NNP') || (lastTag === 'IN' && tag ===
             'NNP' && lWord.toLowerCase() === 'of' && result[result.length -
               1].word.indexOf(' ') >= 0)) {
-          var count = result.length - 1;
           var lastWord = result[count].word;
           var joiner = '';
           if (lastType === 'word') {
@@ -551,6 +589,22 @@ Moses.Extract = {
             word: word
           });
         }
+      } else if (tag === 'NN' && lastTag === 'NN') {
+        var lastWord = result[count].word + ' ' + word;
+        var matches = cts.estimate(cts.andQuery([cts.directoryQuery(
+            '/locations/'),
+          cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+            lastWord, ['whitespace-sensitive', 'case-insensitive',
+              'unwildcarded'
+            ])
+        ]));
+        if (matches > 0) {
+          tag = 'NNP';
+        }
+        result[count] = {
+          tag: tag,
+          word: lastWord
+        };
       } else {
         result.push({
           tag: tag,
@@ -616,7 +670,10 @@ Moses.Extract = {
       if (tag === 'NNP') {
         var found = cts.estimate(cts.andQuery([cts.directoryQuery(
             '/locations/'),
-          cts.jsonPropertyValueQuery('asciiname', word)
+          cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+            word, ['whitespace-sensitive', 'case-insensitive',
+              'unwildcarded'
+            ])
         ]));
         if (found > 0) {
           foundNouns.push({

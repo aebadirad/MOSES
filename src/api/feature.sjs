@@ -1,5 +1,4 @@
 var Moses = require('/moses.sjs');
-var Utils = require('lib/utils.sjs')
 
 var featureFunction = xdmp.getRequestField("function");
 var featureCode = xdmp.getRequestField("featureCode");

@@ -104,6 +104,7 @@ mlcp import -host <ip> -port 8042 -username admin -password password -input_file
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/data/locations -output_uri_replace "path/to/moses/data/,''" -batch_size=200 -thread_count 24 -transaction_size=20 -output_collections location -output_permissions moses-role,read,moses-role,update
 
 5) This is the word dictionary we use to filter against false positives (note it sits in the resources directly, not data here)
+
 mlcp import -host <ip> -port 8042 -username admin -password password -input_file_path path/to/moses/resources/wordlist.json -output_uri_replace "/path/to/moses/resources/,''" -document_type=JSON -batch_size=10 -thread_count 8 -output_permissions moses-role,read,moses-role,update -transaction_size=10 -output_collections wordlist  -mode local
 
 Note: you can run all these commands in any order, but given the spin up time for the locations, it makes more sense to see if the other data will load first.

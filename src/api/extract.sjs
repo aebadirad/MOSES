@@ -1,5 +1,4 @@
 var Moses = require('/moses.sjs');
-var Utils = require('lib/utils.sjs')
 	//let's grab our request field variables so we can see what's being requested
 var searchFunction = xdmp.getRequestField("function");
 var body = xdmp.getRequestBody();
