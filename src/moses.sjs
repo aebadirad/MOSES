@@ -526,7 +526,9 @@ Moses.Extract = {
       var peek = taggedWords[oneAhead];
       var peek2 = taggedWords[twoAhead];
       //all junk responses go here
-      if (word === "$" || word === "@" || word === '^' || word === '--' || word === '\\' ||
+      //yeaaah this is gonna need to be its own regex or array kept elsewhere. This is silly.
+      if (word === '£' || word === "$" || word === "@" || word === '^' || word === '--' || word ===
+        '\\' ||
         word === 'A' || word === 'I' || word === '/' || word === "%" || word === "*") {
         tag = 'JUNK';
       }
@@ -561,10 +563,13 @@ Moses.Extract = {
             nextWord[0] === "'" || nextWord[1] === 'PRP' || nextWord[1] ===
             'NNP' || (nextWord[1] === 'NN' && nextWord[0][0] === nextWord[0]
               [0].toUpperCase()))) {
+          var commonMatches =  cts.estimate(cts.jsonPropertyValueQuery('word', nextWord[0].toLowerCase(), [
+              'exact'
+            ]));
           if (nextWord[0].length > 1) {
             combinedWords += ' ';
           }
-          if (nextWord[1] === 'PRP' && taggedWords[i][0] === ".") {
+          if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[0].length > 1)) && taggedWords[i][0] === ".") {
             break;
           }
           combinedWords += nextWord[0];
@@ -599,11 +604,11 @@ Moses.Extract = {
     var lWord = '';
     for (i in taggedWords) {
       var taggedWord = taggedWords[i];
-      var word = taggedWord.word;
+      var word = taggedWord.word.trim();
       var tag = taggedWord.tag;
       var count = result.length - 1;
       if (tag === 'NNP' || tag === 'IN') {
-        if (lastTag === 'NNP' && tag === 'NNP' || (tag === 'IN' && word.toLowerCase() ===
+        if ((lastTag === 'NNP' && tag === 'NNP' && lWord.slice(-1) !== ".")|| (tag === 'IN' && word.toLowerCase() ===
             'of' && lastTag === 'NNP') || (lastTag === 'IN' && tag ===
             'NNP' && lWord.toLowerCase() === 'of' && result[result.length -
               1].word.indexOf(' ') >= 0)) {
