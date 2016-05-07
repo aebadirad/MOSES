@@ -34,7 +34,7 @@ var Moses = {
     nlpServer: "http://localhost:9000/",
     nlpParams: [{
       key: 'properties',
-      value: '%7B%22annotators%22%3A+%22pos%22%2C+%22outputFormat%22%3A+%22json%22%7D'
+      value: '%7B%22annotators%22%3A+%22pos%2C,ner%22%2C+%22outputFormat%22%3A+%22json%22%7D'
     }]
   }
 };
@@ -998,13 +998,142 @@ Moses.Extract = {
   },
   //below here are NLP 'overrides' of the versions of the above
   getNounsNLP: function(text) {
-    return Moses.post(Moses.config.nlpServer, Moses.config.nlpParams, text);
-  },
-  findPlaceNounsNLP: function(text) {
+    var nlpRes = Moses.post(Moses.config.nlpServer, Moses.config.nlpParams, text).toObject();
+    var sentences = nlpRes.sentences;
+    var sentenceList = [];
+    for (var s in sentences) {
+      var sentence = sentences[s];
+      var taggedWords = sentence.tokens;
+      var wordList = [];
+      var wordCount = 0;
+      var lastWord = "";
+      var lastTag = "";
+      for (var i in taggedWords) {
+        var wordObject = taggedWords[i];
+        var tag = wordObject.pos;
+        var word = wordObject.word;
+        var ner = wordObject.ner;
+        var f = wordCount;
+        f++;
+        var b = wordCount
+        if (wordCount > 0) {
+          b--;
+        }
+        var nextObject = taggedWords[f];
+        var prevObject = taggedWords[b];
+        if ((tag === 'NN' || tag === 'NNS') && ner === 'O') {
+          var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+            'exact'
+          ]));
+          if (matches == 0) {
+            wordObject.pos = 'NNP';
+          }
+        }
 
+        if (((tag === 'NNP' || tag === 'NNPS') && lastTag === 'NNP') && wordObject.ner !==
+          'DATE') {
+          var prevWordList = wordList[wordList.length - 1];
+          wordObject.word = prevWordList.word + prevWordList.after + wordObject.word;
+          wordObject.originalText = prevWordList.originalText + prevWordList.after + wordObject
+            .originalText;
+          wordObject.characterOffsetBegin = prevWordList.characterOffsetBegin;
+          wordObject.before = prevWordList.before;
+          wordObject.pos = prevWordList.pos;
+          wordList[wordList.length - 1] = wordObject;
+        } else {
+          wordList.push(wordObject);
+        }
+        lastTag = wordObject.pos;
+        lastWord = wordObject.word;
+        wordCount++;
+      }
+      sentenceList.push(wordList);
+    }
+    return sentenceList;
   },
-  resolveEnrichedTextNLP: function(text) {
+  findPlaceNounsNLP: function(sentences) {
+    var sentenceList = [];
+    for (var s in sentences) {
+      var taggedWords = sentences[s];
+      var wordList = [];
+      var wordCount = 0;
+      var lastWord = "";
+      var lastTag = "";
+      for (var i in taggedWords) {
+        var wordObject = taggedWords[i];
+        var matchFound = 0;
+        var tag = wordObject.pos;
+        var word = wordObject.word;
+        var ner = wordObject.ner;
+        var f = wordCount;
+        f++;
+        var b = wordCount
+        if (wordCount > 0) {
+          b--;
+        }
+        var nextObject = taggedWords[f];
+        var prevObject = taggedWords[b];
+        if (wordObject.ner === 'LOCATION' || (wordObject.ner === 'O' && wordObject.pos ===
+            'NNP')) {
+          matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
+              '/locations/'),
+            cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+              word, ['exact'])
+          ]));
+        }
 
-  }
+        if (matchFound > 0) {
+          sentences[s][i].pos = 'NNPL';
+        }
+        lastTag = wordObject.pos;
+        lastWord = wordObject.word;
+        wordCount++;
+      }
+      //sentenceList.push(wordList);
+    }
+    return sentences;
+  },
+  resolveEnrichedTextNLP: function(sentences) {
+    var response = {
+      records: [],
+      text: ''
+    }
+
+    var text = '';
+    var idList = [];
+    for (var s in sentences) {
+      var taggedWords = sentences[s];
+      for (var i in taggedWords) {
+        var wordObject = taggedWords[i];
+        var tag = wordObject.pos;
+        var word = wordObject.word;
+        var ner = wordObject.ner;
+        var after = wordObject.after;
+        var id;
+        if (tag === 'NNPL') {
+          var loc = Moses.Extract.resolveLocation(word);
+          if (loc.count > 0) {
+            id = parseInt(loc.clone().next().value.root.geonameid);
+          }
+          if (id) {
+            wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
+              wordObject.originalText + '</span>';
+            if (idList.indexOf(id) === -1) {
+              idList.push(id);
+              response.records.push(loc);
+            }
+          }
+        }
+        response.text += wordObject.originalText + after;
+      }
+    }
+
+    return response;
+  },
+  enrichTextNLP: function(text) {
+    var locs = Moses.Extract.getNounsNLP(text)
+    var places = Moses.Extract.findPlaceNounsNLP(locs);
+    return Moses.Extract.resolveEnrichedTextNLP(places);
+  },
 };
 module.exports = Moses;

@@ -22,11 +22,11 @@ if (body && searchFunction === 'extractLocations' && !engine) {
 } else if (body && searchFunction === 'extractLocations' && engine === 'nlp') {
 	var text = body.toObject().text;
 	Moses.Extract.getNounsNLP(text);
-} else if (body && searchFunction === 'confirmLocations' && engine) {
+} else if (body && searchFunction === 'confirmLocations' && engine === 'nlp') {
 	var text = body.toObject().text;
 	var nouns = Moses.Extract.getNounsNLP(text);
 	Moses.Extract.findPlaceNounsNLP(nouns);
-} else if (body && searchFunction === 'resolveLocations' && engine) {
+} else if (body && searchFunction === 'resolveLocations' && engine === 'nlp') {
 	var text = body.toObject().text;
 	var response = Moses.Extract.enrichTextNLP(text);
 	var p = []
