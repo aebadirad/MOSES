@@ -534,7 +534,9 @@ Moses.Extract = {
         tag = 'JUNK';
       }
       if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===
-          'NNS' && peek2[1] === 'NNP') || (tag === 'JJ' && peek[1] === 'NNP')) && word[0] ===
+          'NNS' && peek[1] === 'NNP') || (tag === 'VB' && word[0] === word[0].toUpperCase() && lastTag === 'NNP') || (tag ===
+          'NNS' && peek[1] === 'VB' && peek[0][0] === peek[0][0].toUpperCase()) || (tag ===
+          'JJ' && peek[1] === 'NNP')) && word[0] ===
         word[0].toUpperCase()) {
         tag = 'NNP';
       }
@@ -582,8 +584,9 @@ Moses.Extract = {
             ]));
             combinedWords += ' ';
           }
+          var totalDots = combinedWords.match(RegExp('\\.','g')) ? combinedWords.match(RegExp('\\.','g')).length : 0;
           if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[
-              0].length > 1)) && taggedWords[i][0] === ".") {
+              0].length > 1)) && taggedWords[i][0] === "." && totalDots < 2) {
             break;
           }
           combinedWords += nextWord[0];
@@ -760,21 +763,31 @@ Moses.Extract = {
         if (failedArray.indexOf(word) === -1) {
           found = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
-            cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+            cts.jsonPropertyValueQuery(['asciiname'],
               word, ['whitespace-sensitive', caseSense,
                 'unwildcarded'
               ])
           ]));
+          if(found == 0){
+             found = cts.estimate(cts.andQuery([cts.directoryQuery(
+              '/locations/'),
+            cts.jsonPropertyWordQuery(['asciiname'],
+              word, ['whitespace-sensitive', caseSense,
+                'unwildcarded'
+              ])
+          ]));
+
+          }
         }
         if (found > 0) {
           foundNouns.push({
-            word: word+clipped,
+            word: word + clipped,
             tag: 'NNPL'
           });
         } else {
           failed += ' ' + word;
           foundNouns.push({
-            word: word+clipped,
+            word: word + clipped,
             tag: tag
           });
         }
@@ -789,7 +802,7 @@ Moses.Extract = {
   },
   resolveLocation: function(foundNoun) {
     return fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
+      '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
       'alternatenames'
     ], foundNoun, ['case-sensitive', 'whitespace-sensitive',
       'unwildcarded', 'punctuation-insensitive'
