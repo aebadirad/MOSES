@@ -7,6 +7,35 @@ var Moses = {
     return Object.getOwnPropertyNames(obj).filter(function(p) {
       return typeof obj[p] === 'function';
     });
+  },
+  post: function(url, parameters, body) {
+    var builtUrl = url;
+    var i = 0;
+    var joiner = '?';
+    for (i in parameters) {
+      if (i > 0) {
+        joiner = '&'
+      }
+      builtUrl += joiner + parameters[i].key + '=' + parameters[i].value;
+      i++;
+    }
+    var nodeBody = new NodeBuilder();
+    nodeBody.addText(body);
+    var records;
+    var response = xdmp.httpPost(builtUrl, [], nodeBody.toNode()).toArray();
+    if (response[0].code !== 200) {
+      records = response[0];
+    } else {
+      records = response[1];
+    }
+    return records;
+  },
+  config: {
+    nlpServer: "http://localhost:9000/",
+    nlpParams: [{
+      key: 'properties',
+      value: '%7B%22annotators%22%3A+%22pos%22%2C+%22outputFormat%22%3A+%22json%22%7D'
+    }]
   }
 };
 Moses.Feature = {
@@ -518,13 +547,13 @@ Moses.Extract = {
       var oneBehind = 0;
       oneBehind = i;
       oneBehind--;
-      var backpeek = taggedWords[oneBehind];
+      var backpeek = taggedWords[oneBehind] ? taggedWords[oneBehind] : [];
       var oneAhead = 0;
       oneAhead = i;
       oneAhead++;
       twoAhead = oneAhead + 1;
-      var peek = taggedWords[oneAhead];
-      var peek2 = taggedWords[twoAhead];
+      var peek = taggedWords[oneAhead] ? taggedWords[oneAhead] : [];
+      var peek2 = taggedWords[twoAhead] ? taggedWords[oneAhead] : [];
       //all junk responses go here
       //yeaaah this is gonna need to be its own regex or array kept elsewhere. This is silly.
       if (word === '£' || word === "$" || word === "@" || word === '^' || word === '--' || word ===
@@ -534,7 +563,8 @@ Moses.Extract = {
         tag = 'JUNK';
       }
       if ((tag === 'JJ' && (peek[1] !== 'NN' && peek2[1] === 'NNP' && peek[1] !== 'CC') || (tag ===
-          'NNS' && peek[1] === 'NNP') || (tag === 'VB' && word[0] === word[0].toUpperCase() && lastTag === 'NNP') || (tag ===
+          'NNS' && peek[1] === 'NNP') || (tag === 'VB' && word[0] === word[0].toUpperCase() &&
+          lastTag === 'NNP') || (tag ===
           'NNS' && peek[1] === 'VB' && peek[0][0] === peek[0][0].toUpperCase()) || (tag ===
           'JJ' && peek[1] === 'NNP')) && word[0] ===
         word[0].toUpperCase()) {
@@ -584,9 +614,12 @@ Moses.Extract = {
             ]));
             combinedWords += ' ';
           }
-          var totalDots = combinedWords.match(RegExp('\\.','g')) ? combinedWords.match(RegExp('\\.','g')).length : 0;
-          if ((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' && nextWord[
-              0].length > 1)) && taggedWords[i][0] === "." && totalDots < 2) {
+          var totalDots = combinedWords.match(RegExp('\\.', 'g')) ? combinedWords.match(RegExp(
+            '\\.', 'g')).length : 0;
+          if (((nextWord[1] === 'PRP' || commonMatches > 0 || (nextWord[1] === 'NNP' &&
+              nextWord[
+                0].length > 1)) && taggedWords[i][0] === "." && totalDots < 2) || nextWord[0] ===
+            "." && taggedWords[i][0].length > 2 && totalDots <= 1) {
             break;
           }
           combinedWords += nextWord[0];
@@ -742,6 +775,7 @@ Moses.Extract = {
     for (i = 0; i < nouns.length; i++) {
       var word = nouns[i].word;
       var tag = nouns[i].tag;
+      var allCaps = word.toUpperCase() === word ? true : false;
       if (tag === 'NNP') {
         var caseSense = 'case-insensitive';
         if (word[0] === word[0].toUpperCase() || word === word.toUpperCase()) {
@@ -753,8 +787,8 @@ Moses.Extract = {
           clipped = word.substr(word.length - 2, 2);
           word = word.substr(0, word.length - 2);
         }
-        if (word.substr(word.length - 1, 1) === "'" || word.substr(word.length -
-            1, 1) === ".") {
+        if ((word.substr(word.length - 1, 1) === "'" || word.substr(word.length -
+            1, 1) === ".") && !allCaps) {
           clipped = word.substr(word.length - 1, 1);
           word = word.substr(0, word.length - 1);
         }
@@ -764,18 +798,14 @@ Moses.Extract = {
           found = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyValueQuery(['asciiname'],
-              word, ['whitespace-sensitive', caseSense,
-                'unwildcarded'
-              ])
+              word, ['exact'])
           ]));
-          if(found == 0){
-             found = cts.estimate(cts.andQuery([cts.directoryQuery(
-              '/locations/'),
-            cts.jsonPropertyWordQuery(['asciiname'],
-              word, ['whitespace-sensitive', caseSense,
-                'unwildcarded'
-              ])
-          ]));
+          if (found == 0 && allCaps) {
+            found = cts.estimate(cts.andQuery([cts.directoryQuery(
+                '/locations/'),
+              cts.jsonPropertyValueQuery(['alternatenames'],
+                word, ['exact'])
+            ]));
 
           }
         }
@@ -800,15 +830,24 @@ Moses.Extract = {
     }
     return foundNouns;
   },
-  resolveLocation: function(foundNoun) {
-    return fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
+  resolveLocation: function(word) {
+    //this needs to be made into a common function with the one above
+    if (word.substr(word.length - 2, 2) === "'s") {
+      word = word.substr(0, word.length - 2);
+    }
+    if (word.substr(word.length - 1, 1) === "'" || word.substr(word.length -
+        1, 1) === ".") {
+      word = word.substr(0, word.length - 1);
+    }
+    var result = fn.subsequence(cts.search(cts.andQuery([cts.directoryQuery(
       '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
       'alternatenames'
-    ], foundNoun, ['case-sensitive', 'whitespace-sensitive',
+    ], word, ['case-insensitive', 'whitespace-sensitive',
       'unwildcarded', 'punctuation-insensitive'
     ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]), 1, 1);
+    return result;
   },
   resolveLocations: function(wordList, text) {
     var response = {
@@ -956,6 +995,16 @@ Moses.Extract = {
     var locs = Moses.Extract.getNouns(text)
     var places = Moses.Extract.findPlaceNouns(locs);
     return Moses.Extract.resolveEnrichedText(places);
+  },
+  //below here are NLP 'overrides' of the versions of the above
+  getNounsNLP: function(text) {
+    return Moses.post(Moses.config.nlpServer, Moses.config.nlpParams, text);
+  },
+  findPlaceNounsNLP: function(text) {
+
+  },
+  resolveEnrichedTextNLP: function(text) {
+
   }
 };
 module.exports = Moses;

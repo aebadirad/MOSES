@@ -82,6 +82,10 @@ function submitExtractData() {
 	var data = {
 		text: $('#extract-text').val().trim()
 	};
+	var engine;
+	if($('#engine').val()){
+		engine = '/?engine=' + $('#engine').val();
+	}
 	$.ajax({
 		contentType: 'application/json',
 		data: JSON.stringify(data),
@@ -102,7 +106,7 @@ function submitExtractData() {
 		},
 		processData: false,
 		type: 'POST',
-		url: '/api/extract/resolve'
+		url: '/api/extract/resolve' + engine
 	});
 };
 

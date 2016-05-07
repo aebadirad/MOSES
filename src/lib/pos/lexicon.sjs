@@ -22711,7 +22711,7 @@ module.exports = {
         "NNP"
     ], 
     "Liberal": [
-        "NNP", 
+        "NNPO", 
         "JJ", 
         "NN"
     ], 
@@ -35890,7 +35890,7 @@ module.exports = {
         "NN"
     ], 
     "Democrat": [
-        "NNP", 
+        "NNPO", 
         "NN"
     ], 
     "job": [
@@ -116373,7 +116373,7 @@ module.exports = {
         "JJ"
     ], 
     "Muslim": [
-        "NNP"
+        "NNPO"
     ], 
     "misplacements": [
         "NNS"
@@ -118883,7 +118883,7 @@ module.exports = {
         "RBR"
     ], 
     "Republican": [
-        "NNP", 
+        "NNPO", 
         "JJ", 
         "NN"
     ], 
@@ -152526,7 +152526,7 @@ module.exports = {
         "NNP"
     ], 
     "Conservative": [
-        "NNP", 
+        "NNPO", 
         "JJ", 
         "NN"
     ], 
@@ -231095,7 +231095,7 @@ module.exports = {
         "NNP"
     ], 
     "Jew": [
-        "NNP", 
+        "NNPO", 
         "NN"
     ], 
     "Jet": [
