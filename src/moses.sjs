@@ -1030,7 +1030,6 @@ Moses.Extract = {
           ]));
           if (matches == 0) {
             wordObject.pos = 'NNP';
-            wordObject.ner = "LOCATION";
           }
         }
 
@@ -1038,15 +1037,6 @@ Moses.Extract = {
           wordObject.pos = 'NNP'
         }
 
-
-        if (ner === 'O' && (wordObject.pos === 'NNPS' || wordObject.pos === 'NNP')) {
-          var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
-            'exact'
-          ]));
-          if (matches == 0) {
-            wordObject.pos = 'NNP';
-          }
-        }
 
         if (ner === 'O' && (wordObject.pos === 'VB' || wordObject.pos === 'JJ') && word[0] === word[0].toUpperCase() && wordObject.index !== 1 && nextObject.pos === 'NNP') {
             wordObject.pos = 'NNP';
@@ -1111,6 +1101,14 @@ Moses.Extract = {
             cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
               word, ['exact'])
           ]));
+        }
+        if (ner === 'O' && (wordObject.pos === 'NNPS' || wordObject.pos === 'NNP')) {
+          var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+            'exact'
+          ]));
+          if (matches > 0) {
+            wordObject.pos = 'NNPD';
+          }
         }
 
         if (wordObject.ner === 'O' && wordObject.pos ===
