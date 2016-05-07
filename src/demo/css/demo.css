@@ -3,7 +3,7 @@ body {
 }
 
 .starter-template {
-    padding: 10px 15px;
+    padding: 10px 0px;
     text-align: center;
 }
 
@@ -11,6 +11,8 @@ body {
     height: 380px;
     width: 65%;
     float: right;
+    border-right: 1px solid #AAA;
+    border-left: 1px solid #AAA;
 }
 
 .tab-content {
@@ -58,10 +60,14 @@ thead {
 
 #results {
     height: 300px;
+    border-top: 2px solid #AAA;
     width: 100%;
     overflow-y: scroll;
 }
 
+#results-header {
+
+}
 #enrich-text {
     height: 280px;
     overflow-y: scroll;

@@ -589,7 +589,7 @@ Moses.Extract = {
           tag: 'NNP'
         });
       } else if (lastTag === "." && tag === 'NNP') {
-        var commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+        var commonMatches = cts.estimate(cts.jsonPropertyValueQuery('word', word, [
           'exact'
         ]));
         if (commonMatches > 0) {
@@ -1021,7 +1021,25 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if ((tag === 'NN' || tag === 'NNS') && ner === 'O') {
+        //we probably want to break these out in the future so they don't get like the tagger code above
+
+        //3 letter code check: is it a word? If so
+        if (word.length === 3 && (wordObject.pos === 'NNPS' || wordObject.pos === 'NNP')) {
+          var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+            'exact'
+          ]));
+          if (matches == 0) {
+            wordObject.pos = 'NNP';
+            wordObject.ner = "LOCATION";
+          }
+        }
+
+        if(ner === 'LOCATION'){
+          wordObject.pos = 'NNP'
+        }
+
+
+        if (ner === 'O' && (wordObject.pos === 'NNPS' || wordObject.pos === 'NNP')) {
           var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
             'exact'
           ]));
@@ -1030,7 +1048,21 @@ Moses.Extract = {
           }
         }
 
-        if (((tag === 'NNP' || tag === 'NNPS') && lastTag === 'NNP') && wordObject.ner !==
+        if (ner === 'O' && (wordObject.pos === 'VB' || wordObject.pos === 'JJ') && word[0] === word[0].toUpperCase() && wordObject.index !== 1 && nextObject.pos === 'NNP') {
+            wordObject.pos = 'NNP';
+        }
+
+        if ((wordObject.pos === 'NN' || wordObject.pos === 'NNS') && ner === 'O') {
+          var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
+            'exact'
+          ]));
+          if (matches == 0) {
+            wordObject.pos = 'NNP';
+          }
+        }
+
+        //this thing looking back
+        if (((wordObject.pos === 'NNP' || wordObject.pos === 'NNPS') && (lastTag === 'NNP')) && wordObject.ner !==
           'DATE') {
           var prevWordList = wordList[wordList.length - 1];
           wordObject.word = prevWordList.word + prevWordList.after + wordObject.word;
@@ -1073,8 +1105,7 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if (wordObject.ner === 'LOCATION' || (wordObject.ner === 'O' && wordObject.pos ===
-            'NNP')) {
+        if (wordObject.ner === 'LOCATION') {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1082,6 +1113,14 @@ Moses.Extract = {
           ]));
         }
 
+        if (wordObject.ner === 'O' && wordObject.pos ===
+          'NNP') {
+          matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
+              '/locations/'),
+            cts.jsonPropertyRangeQuery(['asciiname', 'alternatenames'],
+              '=', word)
+          ]));
+        }
         if (matchFound > 0) {
           sentences[s][i].pos = 'NNPL';
         }
