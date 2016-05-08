@@ -354,6 +354,14 @@
 	<range-element-index>
 	  <scalar-type>string</scalar-type>
 	  <namespace-uri/>
+	  <localname>iso3</localname>
+	  <collation>http://marklogic.com/collation/</collation>
+	  <range-value-positions>false</range-value-positions>
+	  <invalid-values>reject</invalid-values>
+	</range-element-index>
+	<range-element-index>
+	  <scalar-type>string</scalar-type>
+	  <namespace-uri/>
 	  <localname>fips</localname>
 	  <collation>http://marklogic.com/collation/</collation>
 	  <range-value-positions>false</range-value-positions>

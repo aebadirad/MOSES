@@ -82,7 +82,7 @@ function submitExtractData() {
 	var data = {
 		text: $('#extract-text').val().trim()
 	};
-	var engine;
+	var engine = '';
 	if($('#engine').val()){
 		engine = '/?engine=' + $('#engine').val();
 	}
@@ -148,6 +148,7 @@ function parseResponse(data) {
 		}
 		//readd these guys to the map
 		map.addLayer(markers);
+		map.fitBounds(markers.getBounds());
 		$('#results-table').html(result);
 		$('.rowMarker').hover(function() {
 			$(this).addClass("hover");

@@ -434,6 +434,16 @@
             }
         });
 
+        $(document).bind('keypress', function(e) {
+            if (e.keyCode == 13) {
+                if ($('#submitButton').is(":visible")) {
+                    $('#submitButton').click();
+                } else if ($('#extractButton').is(":visible")) {
+                    $('#extractButton').click();
+                }
+            }
+        });
+
         //our submit button observer for clicks
         $('#submitButton').click(function() {
             $(this).prop("disabled", true);
