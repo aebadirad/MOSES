@@ -127,7 +127,7 @@ function parseResponse(data) {
 			var record = data[i];
 			var district = record.district ? record.district : 'N/A';
 			var province = record.province ? record.province : 'N/A';
-			var feature = record.feature ? record.feature : 'N/A';
+			var feature = record.featureName ? record.featureName.substring(0,20) : 'N/A';
 			var name = record.asciiname ? record.asciiname : record.name;
 			result += '<tr id="' + record.geonameid + '" class="rowMarker"><td>' +
 				record.geonameid + '</td><td>' + name + '</td><td>' + record.countryCode +

@@ -1033,13 +1033,13 @@ Moses.Extract = {
           }
         }
 
-        if(ner === 'LOCATION'){
+        if (ner === 'LOCATION') {
           wordObject.pos = 'NNP'
         }
 
-
-        if (ner === 'O' && (wordObject.pos === 'VB' || wordObject.pos === 'JJ') && word[0] === word[0].toUpperCase() && wordObject.index !== 1 && nextObject.pos === 'NNP') {
-            wordObject.pos = 'NNP';
+        if (ner === 'O' && (wordObject.pos === 'VB' || wordObject.pos === 'JJ') && word[0] ===
+          word[0].toUpperCase() && wordObject.index !== 1 && nextObject.pos === 'NNP') {
+          wordObject.pos = 'NNP';
         }
 
         if ((wordObject.pos === 'NN' || wordObject.pos === 'NNS') && ner === 'O') {
@@ -1052,7 +1052,8 @@ Moses.Extract = {
         }
 
         //this thing looking back
-        if (((wordObject.pos === 'NNP' || wordObject.pos === 'NNPS') && (lastTag === 'NNP')) && wordObject.ner !==
+        if (((wordObject.pos === 'NNP' || wordObject.pos === 'NNPS') && (lastTag === 'NNP')) &&
+          wordObject.ner !==
           'DATE') {
           var prevWordList = wordList[wordList.length - 1];
           wordObject.word = prevWordList.word + prevWordList.after + wordObject.word;
@@ -1129,6 +1130,96 @@ Moses.Extract = {
       //sentenceList.push(wordList);
     }
     return sentences;
+  },
+  setPlaceStats: function(place) {
+    var charCount = place.word.length;
+    var capital;
+    if (place.word[0] === place.word[0].toUpperCase()) {
+      capital = 'all';
+    }
+    if (place === place.toUpperCase()) {
+      capital = 'first';
+    }
+    if (place === place.toLowerCase()) {
+      capital = 'none';
+    }
+
+    place.capital = capital;
+    place.charCount = charCapital;
+
+    return place;
+  },
+  isAirPortCode: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'AIRP', ['exact'])
+    ])) > 0) ? true : false;
+
+  },
+  isCountryCode: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PCLI', ['exact'])
+    ])) > 0) ? true : false;
+  },
+  isProvinceCode: function(place) {
+
+  },
+  isCountry: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PCLI', ['exact'])
+    ])) > 0) ? true : false;
+  },
+  isProvince: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM1', ['exact'])
+    ])) > 0) ? true : false;
+
+  },
+  isDistrict: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM2', ['exact'])
+    ])) > 0) ? true : false;
+  },
+  isCity: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PPL*', ['wildcard'])
+    ])) > 0) ? true : false;
+
+  },
+  isNatural: function(place) {
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        word, ['case-sensitive', 'whitespace-sensitive', 'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['T', 'H', 'V'], [
+        'exact'
+      ])
+    ])) > 0) ? true : false;
+
+  },
+  isIndividual: function(place) {
+
+    return (cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        word, ['case-sensitive', 'whitespace-sensitive', 'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['S', 'L', 'R'], [
+        'exact'
+      ]), cts.jsonPropertyRangeQuery('featureCode', '!=', ['AIRP'])
+    ])) > 0) ? true : false;
   },
   resolveEnrichedTextNLP: function(sentences) {
     var response = {
