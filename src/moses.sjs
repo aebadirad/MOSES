@@ -1096,13 +1096,20 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if (wordObject.ner === 'LOCATION') {
+        if (wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
               word, ['exact'])
           ]));
         }
+        if (wordObject.ner === 'O' && (wordObject.pos === 'NN' || wordObject.pos === 'NNP') &&
+          (word.length === 2 || word.length === 3) && word === word.toUpperCase() && lastTag ===
+          ",") {
+          wordObject.pos = 'NNPL';
+          matchFound = 1;
+        }
+
         if (ner === 'O' && (wordObject.pos === 'NNPS' || wordObject.pos === 'NNP')) {
           var matches = cts.estimate(cts.jsonPropertyValueQuery('word', word.toLowerCase(), [
             'exact'
@@ -1112,17 +1119,25 @@ Moses.Extract = {
           }
         }
 
-        if (wordObject.ner === 'O' && wordObject.pos ===
-          'NNP') {
+        if (wordObject.ner === 'O' && (wordObject.pos ===
+            'NNP' || wordObject.pos === 'NN')) {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyRangeQuery(['asciiname', 'alternatenames'],
               '=', word)
           ]));
         }
+        // is it an acronym? just a word? capitolized? what?
+        wordObject = Moses.Extract.setPlaceStats(wordObject);
+
         if (matchFound > 0) {
+          var exactType = Moses.Extract.isOnlyPlace(wordObject);
+          if (exactType) {
+            sentences[s][i] = Moses.Extract.getOnlyPlace(wordObject, exactType);
+          }
+
           sentences[s][i].pos = 'NNPL';
-          sentences[s][i].locations = {};
+          sentences[s][i].locations = exactType;
         }
         lastTag = wordObject.pos;
         lastWord = wordObject.word;
@@ -1149,31 +1164,60 @@ Moses.Extract = {
     place.charCount = charCount;
     place.dots = (place.word.indexOf('.') === -1) ? false : true;
     place.isAcronym = false;
-    if (place.dots && place.capital === 'all') {
+    if (place.dots || place.capital === 'all') {
       place.isAcronym = true;
     }
 
     return place;
   },
   isOnlyPlace: function(place) {
-    return (cts.estimate(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
-      'alternatenames'
-    ], place.word, ['case-insensitive', 'whitespace-sensitive',
-      'unwildcarded', 'punctuation-insensitive'
-    ])])) > 0) ? true : false;
+    var results = 0;
+    var countryCount = 0;
+    var provinceCount = 0;
+    var airportCount = 0;
+    var genericCount = 0;
+    if (place.isAcronym && place.charCount === 2) {
+      countryCount = Moses.Extract.countCountryCode(place);
+      provinceCount = Moses.Extract.countProvinceCode(place);
+    } else if (place.isAcronym && place.charCount === 3) {
+      countryCount = Moses.Extract.countCountryCode(place);
+      airportCount = Moses.Extract.countAirportCode(place);
+    } else {
+      genericCount = Moses.Extract.countGeneric(place);
+    }
+    results = provinceCount + airportCount + countryCount + genericCount;
+    if (results === 1) {
+      if (provinceCount === 1) {
+        results = 'province';
+      } else if (airportCount === 1) {
+        results = 'airport';
+      } else if (countryCount === 1) {
+        results = 'country';
+      } else if (genericCount === 1) {
+        results = 'generic';
+      }
+    } else {
+      results = false;
+    }
+
+    return results;
   },
-  getOnlyPlace: function(place) {
-    place.location = cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
-      'alternatenames'
-    ], place.word, ['case-insensitive', 'whitespace-sensitive',
-      'unwildcarded', 'punctuation-insensitive'
-    ])])).toArray()[0].toObject();
+  getOnlyPlace: function(place, type) {
+    var result;
+    if (type === 'airport') {
+      result = Moses.Extract.getAirportCode(place);
+    } else if (type === 'country') {
+      result = Moses.Extract.getCountryCode(place);
+    } else if (type === 'province') {
+      result = Moses.Extract.getProvinceCode(place);
+    } else {
+      result = Moses.Extract.getGeneric(place);
+    }
+    place.location = result;
     place.confirmed = true;
     return place;
   },
-  isAirPortCode: function(place) {
+  isAirportCode: function(place) {
     return (cts.estimate(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1181,6 +1225,22 @@ Moses.Extract = {
         'exact'
       ])
     ])) > 0) ? true : false;
+  },
+  getGeneric: function(place) {
+    return cts.search(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
+      'alternatenames'
+    ], place.word, ['case-insensitive', 'whitespace-sensitive',
+      'unwildcarded', 'punctuation-insensitive'
+    ])])).toArray()[0].toObject();
+  },
+  countGeneric: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
+      'alternatenames'
+    ], place.word, ['case-insensitive', 'whitespace-sensitive',
+      'unwildcarded', 'punctuation-insensitive'
+    ])])));
   },
   isCountryCode: function(place) {
     return (cts.estimate(cts.andQuery([cts.directoryQuery(
@@ -1240,7 +1300,8 @@ Moses.Extract = {
     return (cts.estimate(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
-        place.word, ['case-sensitive', 'whitespace-sensitive', 'diacritic-insensitive',
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
           'unwildcarded'
         ]), cts.jsonPropertyValueQuery('featureClass', ['T', 'H', 'V'], [
         'exact'
@@ -1249,18 +1310,192 @@ Moses.Extract = {
 
   },
   isIndividual: function(place) {
-
     return (cts.estimate(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
-        place.word, ['case-sensitive', 'whitespace-sensitive', 'diacritic-insensitive',
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
           'unwildcarded'
         ]), cts.jsonPropertyValueQuery('featureClass', ['S', 'L', 'R'], [
         'exact'
       ]), cts.jsonPropertyRangeQuery('featureCode', '!=', ['AIRP'])
     ])) > 0) ? true : false;
   },
+  countAirportCode: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'AIRP', [
+        'exact'
+      ])
+    ])));
+  },
+  countCountryCode: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/country-info/'),
+      cts.jsonPropertyRangeQuery(['iso', 'iso3', 'fips'], '=',
+        place.word)
+    ])));
+  },
+  countProvinceCode: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM1', [
+        'exact'
+      ])
+    ])));
+  },
+  countCountry: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PCLI', [
+        'exact'
+      ])
+    ])));
+  },
+  countProvince: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM1', [
+        'exact'
+      ])
+    ])));
+
+  },
+  countDistrict: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM2', [
+        'exact'
+      ])
+    ])));
+  },
+  countCity: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PPL*', [
+        'wildcard'
+      ])
+    ])));
+
+  },
+  countNatural: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['T', 'H', 'V'], [
+        'exact'
+      ])
+    ])));
+
+  },
+  countIndividual: function(place) {
+    return parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['S', 'L', 'R'], [
+        'exact'
+      ]), cts.jsonPropertyRangeQuery('featureCode', '!=', ['AIRP'])
+    ])));
+  },
+  getAirportCode: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'AIRP', [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+  },
   getCountryCode: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/getry-info/'),
+      cts.jsonPropertyRangeQuery(['iso', 'iso3', 'fips'], '=',
+        place.word)
+    ])).toArray()[0].toObject());
+  },
+  getProvinceCode: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM1', [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+  },
+  getgetry: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PCLI', [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+  },
+  getProvince: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM1', [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+
+  },
+  getDistrict: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'ADM2', [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+  },
+  getCity: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        place.word, ['exact']), cts.jsonPropertyValueQuery('featureCode', 'PPL*', [
+        'wildcard'
+      ])
+    ])).toArray()[0].toObject());
+  },
+  getNatural: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['T', 'H', 'V'], [
+        'exact'
+      ])
+    ])).toArray()[0].toObject());
+  },
+  getIndividual: function(place) {
+    return (cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
+          'unwildcarded'
+        ]), cts.jsonPropertyValueQuery('featureClass', ['S', 'L', 'R'], [
+        'exact'
+      ]), cts.jsonPropertyRangeQuery('featureCode', '!=', ['AIRP'])
+    ])).toArray()[0].toObject());
+  },
+  getCountryCodes: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/country-info/'),
       cts.jsonPropertyRangeQuery(['iso', 'iso3', 'fips'], '=',
@@ -1274,7 +1509,7 @@ Moses.Extract = {
     }
     return place;
   },
-  getProvinceCode: function(place) {
+  getProvinceCodes: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['alternatenames'],
@@ -1290,7 +1525,7 @@ Moses.Extract = {
     }
     return place;
   },
-  getCountry: function(place) {
+  getCountrys: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1306,7 +1541,7 @@ Moses.Extract = {
     }
     return place;
   },
-  getProvince: function(place) {
+  getProvinces: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1322,7 +1557,7 @@ Moses.Extract = {
     }
     return place;
   },
-  getDistrict: function(place) {
+  getDistricts: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1338,7 +1573,7 @@ Moses.Extract = {
     }
     return place;
   },
-  getCity: function(place) {
+  getCitys: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1354,11 +1589,12 @@ Moses.Extract = {
     }
     return place;
   },
-  getNatural: function(place) {
+  getNaturals: function(place) {
     var results = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
-        place.word, ['case-sensitive', 'whitespace-sensitive', 'diacritic-insensitive',
+        place.word, ['case-sensitive', 'whitespace-sensitive',
+          'diacritic-insensitive',
           'unwildcarded'
         ]), cts.jsonPropertyValueQuery('featureClass', ['T', 'H', 'V'], [
         'exact'
@@ -1383,11 +1619,14 @@ Moses.Extract = {
       //Now, let's assume it's a country/province, BUT WHICH ONE?!
       var country = Moses.Extract.isCountryCode(place);
       var province = Moses.Extract.isProvinceCode(place);
-
     } else {
-
+      var individual = Moses.Extract.isIndividual(place);
     }
+
     return placeList;
+  },
+  resolveWord: function(place) {
+
   },
   resolveEnrichedTextNLP: function(sentences) {
     var response = {
@@ -1407,7 +1646,6 @@ Moses.Extract = {
         var after = wordObject.after;
         var id;
         if (tag === 'NNPL') {
-          wordObject = Moses.Extract.setPlaceStats(wordObject);
 
           var loc = Moses.Extract.resolveLocation(word);
           if (loc.count > 0) {
