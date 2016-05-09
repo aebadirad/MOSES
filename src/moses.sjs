@@ -1188,9 +1188,12 @@ Moses.Extract = {
         continue;
       }
       for (var i in updatedWords) {
-        if (updatedWords[i].pos === 'NNPL' && !updatedWords[i].confirmed) {
+        if (updatedWords[i].pos === 'NNPL') {
           var index = updatedWords[i].index;
+          //check some commonly used phrases around types of places
           var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
+          //check to see if this is a  place,place pair.
+
         }
       }
 
@@ -1206,6 +1209,7 @@ Moses.Extract = {
     }
     return sentences;
   },
+
   getPhraseCategories: function(updatedWords, i) {
     var categories = [];
     var oneForward = updatedWords[i == updatedWords.length - 1 ? 0 : i + 1] ? updatedWords[i ==
@@ -1305,6 +1309,33 @@ Moses.Extract = {
 
     return place;
   },
+  getPlaceCategories: function(place) {
+    var response = {
+      country: 0,
+      province: 0,
+      airport: 0,
+      city: 0,
+      district: 0,
+      individual: 0,
+      natural: 0
+    }
+    if (place.isAcronym && place.charCount === 2) {
+      response.country = Moses.Extract.countCountryCode(place);
+      response.province = Moses.Extract.countProvinceCode(place);
+    } else if (place.isAcronym && place.charCount === 3) {
+      response.country = Moses.Extract.countCountryCode(place);
+      response.airport = Moses.Extract.countAirportCode(place);
+    } else {
+      response.country = Moses.Extract.countCountry(place);
+      response.province = Moses.Extract.countProvince(place);
+      response.airport = Moses.Extract.countAirportCode(place);
+      response.city = Moses.Extract.countCity(place);
+      response.district = Moses.Extract.countDistrict(place);
+      response.individual = Moses.Extract.countIndividual(place);
+      response.natural = Moses.Extract.countNatural(place);
+    }
+    return response;
+  },
   isOnlyPlace: function(place) {
     var results = 0;
     var countryCount = 0;
@@ -1336,6 +1367,53 @@ Moses.Extract = {
     }
 
     return results;
+  },
+  getByConfirmedHigher: function(confirmed, place) {
+    var andQuery = [cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], place.word, [
+        'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
+      ]),
+      cts.jsonPropertyValueQuery(['countryCode'], confirmed.location.countryCode)
+    ];
+
+    if (confirmed.location.admin1Code) {
+      andQuery.push(cts.jsonPropertyValueQuery(
+        'admin1Code', confirmed.location.admin1Code));
+    }
+
+    if (confirmed.location.admin2Code) {
+      andQuery.push(cts.jsonPropertyValueQuery(
+        'admin2Code', confirmed.location.admin2Code));
+    }
+
+    return cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
+        'population', []),
+      'descending'), cts.indexOrder(cts.jsonPropertyReference(
+      'geonameid', []), 'ascending')]).toArray()[0];
+  },
+
+  getByConfirmedLower: function(confirmed, place) {
+    var andQuery = [cts.directoryQuery(
+        '/locations/'),
+      cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], place.word, [
+        'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
+      ]),
+      cts.jsonPropertyValueQuery(['countryCode'], confirmed.location.countryCode)
+    ];
+
+    if (confirmed.location.admin2Code) {
+      andQuery.push(cts.orQuery([cts.jsonPropertyRangeQuery('featureCode', '=', 'ADM2'), cts.jsonPropertyRangeQuery(
+        'featureCode', '=', 'ADM1'), cts.jsonPropertyRangeQuery('featureCode', '=',
+        'PCLI')]));
+    } else if (confirmed.location.admin1Code) {
+      andQuery.push(cts.jsonPropertyRangeQuery('featureCode', '=', 'PCLI'));
+    }
+
+    return cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
+        'population', []),
+      'descending'), cts.indexOrder(cts.jsonPropertyReference(
+      'geonameid', []), 'ascending')]).toArray()[0];
   },
   getOnlyPlace: function(place, type) {
     var result;
