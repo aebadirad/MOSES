@@ -1193,7 +1193,14 @@ Moses.Extract = {
           //check some commonly used phrases around types of places
           var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
           //check to see if this is a  place,place pair.
+          if (Moses.Extract.isPlacePair(updatedWords, i)) {
+            var resolvedPlaces = Moses.Extract.resolvePlacePair(updatedWords, i);
+            if (resolvedPlaces) {
 
+            } else {
+
+            }
+          }
         }
       }
 
@@ -1209,8 +1216,50 @@ Moses.Extract = {
     }
     return sentences;
   },
+  isPlacePair: function(updatedWords, i) {
+    var f = parseInt(i) + 1;
+    var f2 = parseInt(i) + 2;
+    if (updatedWords[f] && updatedWords[f2] && updatedWords[f].word === ',' && updatedWords[f2]
+      .pos === 'NNPL') {
+      return true;
+    } else {
+      return false;
+    }
+  },
+  resolvePlacePair: function(updatedWords, i) {
+    var f = parseInt(i) + 2;
+    var thisWord = updatedWords[i];
+    var nextWord = updatedWords[f];
+    var locations = {};
+    //check if any of these are confirmed locations
+    if (!nextWord.confirmed && thisWord.confirmed) {
+      //the 'lower' is confirmed here
+      var thisWordConfirmed = getByConfirmedLower(thisWord, nextWord);
+      if(thisWordConfirmed){
+        locations.first = thisWordConfirmed;
+        locations.second = nextWord;
+      }
+    } else if (nextWord.confirmed && !thisWord.confirmed) {
+      //the 'higher' is confirmed here
 
-  getPhraseCategories: function(updatedWords, i) {
+       var nextWordConfirmed = getByConfirmedHigher(nextWord, thisWord);
+      if(nextWordConfirmed){
+        locations.first = thisWord;
+        locations.second = nextWordConfirmed;
+      }
+    } else if (!nextWord.confirmed && !thisWord.confirmed) {
+      //doh, neither is confirmed, more processing required!
+      res = cts.estimate(cts.andQuery([cts.directoryQuery(
+          '/locations/'),
+        cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], thisWord.word, [
+          'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
+        ]),
+        cts.jsonPropertyValueQuery(['countryCode'], )
+      ])));
+  }
+  return locations;
+},
+getPhraseCategories: function(updatedWords, i) {
     var categories = [];
     var oneForward = updatedWords[i == updatedWords.length - 1 ? 0 : i + 1] ? updatedWords[i ==
       updatedWords.length - 1 ? 0 : i + 1] : {
