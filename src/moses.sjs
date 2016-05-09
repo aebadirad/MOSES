@@ -531,6 +531,26 @@ Moses.Location = {
 };
 Moses.Extract = {
   name: 'Extract',
+  phraseCategories: {
+    PCLI: {
+      forward: [],
+      back: ['the nation of', 'the country of', 'the state of', 'capitol of', 'the government of']
+    },
+    ADM1: {
+      forward: ['state', 'province'],
+      back: ['the state of', 'province of', 'the capitol of', 'state government of',
+        'provincial government of', 'a city in'
+      ]
+    },
+    PPL: {
+      forward: ['city', 'is the capitol'],
+      back: ['city of']
+    },
+    ADM2: {
+      forward: ['district', 'county'],
+      back: ['country of', 'district of']
+    }
+  },
   tagWords: function(text) {
     var result = new Array();
     var words = new Moses.pos.Lexer().lex(text);
@@ -1082,6 +1102,7 @@ Moses.Extract = {
       var wordCount = 0;
       var lastWord = "";
       var lastTag = "";
+      //first pass, let's grab the confirmeds and weed out the false positives
       for (var i in taggedWords) {
         var wordObject = taggedWords[i];
         var matchFound = 0;
@@ -1134,37 +1155,151 @@ Moses.Extract = {
           var exactType = Moses.Extract.isOnlyPlace(wordObject);
           if (exactType) {
             sentences[s][i] = Moses.Extract.getOnlyPlace(wordObject, exactType);
+          } else {
+            sentences[s][i].confirmed = false;
           }
-
           sentences[s][i].pos = 'NNPL';
-          sentences[s][i].locations = exactType;
+          sentences[s][i].locations = {};
         }
+
         lastTag = wordObject.pos;
         lastWord = wordObject.word;
         wordCount++;
       }
       //sentenceList.push(wordList);
+      //Now, we're at the end of the sentence. We can go back and evaluate the things
+      //that didn't make an insta-confirmation.
+      var updatedWords = sentences[s];
+      var confirmedLocations = Moses.Extract.scanConfirmedLocations(sentences[s]);
+      var countLocations = Moses.Extract.countLocations(sentences[s]);
+      if (countLocations === confirmedLocations.length) {
+        //if there's no locations, no point in looping through, or if all are confirmed
+        continue;
+      }
+      if (confirmedLocations.length === 0 && countLocations === 1 && parseInt(s) === 0) {
+        for (var i in updatedWords) {
+          if (updatedWords[i].pos === 'NNPL') {
+            sentences[s][i].location = Moses.Extract.getDefault(updatedWords[i]);
+            //save processing by breaking the loop
+            break;
+          }
+        }
+        // we don't want to continue going through the same dead end sentence.
+        continue;
+      }
+      for (var i in updatedWords) {
+        if (updatedWords[i].pos === 'NNPL' && !updatedWords[i].confirmed) {
+          var index = updatedWords[i].index;
+          var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
+        }
+      }
+
+      //on last pass, let's make sure we didn't leave anything hanging
+      if (parseInt(s) === sentences.length) {
+        var confirmedFirstLocations = Moses.Extract.scanConfirmedLocations(sentences[0]);
+        var countFirstLocations = Moses.Extract.countLocations(sentences[0]);
+        //do we still have unconfirmed locations?
+        if (countFirstLocations < confirmedFirstLocations) {
+
+        }
+      }
     }
     return sentences;
+  },
+  getPhraseCategories: function(updatedWords, i) {
+    var categories = [];
+    var oneForward = updatedWords[i == updatedWords.length - 1 ? 0 : i + 1] ? updatedWords[i ==
+      updatedWords.length - 1 ? 0 : i + 1] : {
+      word: '',
+      after: ''
+    };
+    var twoForward = updatedWords[i == updatedWords.length - 2 ? 0 : i + 2] ? updatedWords[i ==
+      updatedWords.length - 2 ? 0 : i + 2] : {
+      word: '',
+      after: ''
+    };
+    var threeForward = updatedWords[i == updatedWords.length - 3 ? 0 : i + 3] ? updatedWords[i ==
+      updatedWords.length - 3 ? 0 : i + 3] : {
+      word: '',
+      after: ''
+    };
+    var oneBack = updatedWords[i == 0 ? updatedWords.length - 1 : i - 1] ? updatedWords[i == 0 ?
+      updatedWords.length - 1 : i - 1] : {
+      word: '',
+      after: ''
+    };
+    var twoBack = updatedWords[i == 1 ? updatedWords.length - 2 : i - 2] ? updatedWords[i == 1 ?
+      updatedWords.length - 2 : i - 2] : {
+      word: '',
+      after: ''
+    };
+    var threeBack = updatedWords[i == 2 ? updatedWords.length - 3 : i - 3] ? updatedWords[i ==
+      2 ? updatedWords.length - 3 : i - 3] : {
+      word: '',
+      after: ''
+    };
+    var beforeText = threeBack.word + threeBack.after + twoBack.word + twoBack.after + oneBack.word;
+    var afterText = oneForward.word + oneForward.after + twoForward.word + twoForward.after +
+      threeForward.word;
+
+    for (i in Moses.Extract.phraseCategories) {
+      //check forwards
+      var category = i;
+      for (f in Moses.Extract.phraseCategories[i].forward) {
+        if (afterText.indexOf(Moses.Extract.phraseCategories[i].forward[f]) > -1) {
+          categories.push(category)
+        }
+      }
+      for (b in Moses.Extract.phraseCategories[i].back) {
+        //check backwards
+        if (beforeText.indexOf(Moses.Extract.phraseCategories[i].back[b]) > -1) {
+          categories.push(category)
+        }
+      }
+    }
+
+    return categories;
+  },
+  scanConfirmedLocations: function(sentence) {
+    var confirmed = [];
+    for (i in sentence) {
+      if (sentence[i].pos === 'NNPL' && sentence[i].confirmed) {
+        confirmed.push({
+          index: sentence[i].index,
+          location: sentence[i].location
+        });
+      }
+    }
+    return confirmed;
+  },
+  countLocations: function(sentence) {
+    var count = 0;
+    for (i in sentence) {
+      if (sentence[i].pos === 'NNPL') {
+        count++;
+      }
+    }
+    return count;
   },
   setPlaceStats: function(place) {
     var charCount = place.word.length;
     var capital;
     if (place.word[0] === place.word[0].toUpperCase()) {
-      capital = 'all';
-    }
-    if (place === place.word.toUpperCase()) {
       capital = 'first';
     }
-    if (place === place.word.toLowerCase()) {
+    if (place.word === place.word.toUpperCase()) {
+      capital = 'all';
+    }
+    if (place.word === place.word.toLowerCase()) {
       capital = 'none';
     }
 
     place.capital = capital;
     place.charCount = charCount;
-    place.dots = (place.word.indexOf('.') === -1) ? false : true;
+    place.dots = (place.word.match(/\./g) || []).length ? (place.word.match(/\./g) || []).length :
+      0;
     place.isAcronym = false;
-    if (place.dots || place.capital === 'all') {
+    if (place.dots > 1 || place.capital === 'all') {
       place.isAcronym = true;
     }
 
@@ -1225,6 +1360,16 @@ Moses.Extract = {
         'exact'
       ])
     ])) > 0) ? true : false;
+  },
+  getDefault: function(place) {
+    return cts.search(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
+      'alternatenames'
+    ], place.word, ['case-insensitive', 'whitespace-sensitive',
+      'unwildcarded', 'punctuation-insensitive'
+    ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+      'descending'), cts.indexOrder(cts.jsonPropertyReference(
+      'geonameid', []), 'ascending')]).toArray()[0].toObject();
   },
   getGeneric: function(place) {
     return cts.search(cts.andQuery([cts.directoryQuery(
