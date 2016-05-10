@@ -1201,13 +1201,12 @@ Moses.Extract = {
       for (var i in updatedWords) {
         if (updatedWords[i].pos === 'NNPL') {
           var index = updatedWords[i].index;
-          //check some commonly used phrases around types of places
-          var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
+
           //check to see if this is a  place,place pair.
           if (Moses.Extract.isPlacePair(updatedWords, i)) {
             var f = parseInt(i) + 2;
             var resolvedPlaces = Moses.Extract.resolvePlacePair(updatedWords, i);
-            if (resolvedPlaces.first.length > 0 && resolvedPlaces.second.legnth > 0) {
+            if (resolvedPlaces.first.length > 0 || resolvedPlaces.second.length > 0) {
               if (resolvedPlaces.first.length === 1 && !updatedWords[i].confirmed) {
                 updatedWords[i].location = resolvedPlaces.first[0];
                 updatedWords[i].confirmed = true;
@@ -1266,16 +1265,14 @@ Moses.Extract = {
       //the 'lower' is confirmed here
       var thisWordConfirmed = Moses.Extract.getByConfirmedLower(thisWord, nextWord);
       if (thisWordConfirmed) {
-        locations.first = thisWordConfirmed;
-        //locations.second = [nextWord];
+        locations.second = thisWordConfirmed;
       }
     } else if (nextWord.confirmed && !thisWord.confirmed) {
       //the 'higher' is confirmed here
 
       var nextWordConfirmed = Moses.Extract.getByConfirmedHigher(nextWord, thisWord);
       if (nextWordConfirmed) {
-        //locations.first = [thisWord];
-        locations.second = nextWordConfirmed;
+        locations.first = nextWordConfirmed;
       }
     } else if (!nextWord.confirmed && !thisWord.confirmed) {
       //doh, neither is confirmed, more processing required!
@@ -2009,6 +2006,8 @@ Moses.Extract = {
             id = wordObject.location.geonameid;
           } else {
             //now we gotta try to figure it out!
+            //check some commonly used phrases around types of places
+            var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
             loc = Moses.Extract.resolveLocation(word);
             if (loc.count > 0) {
               id = parseInt(loc.clone().next().value.root.geonameid);
