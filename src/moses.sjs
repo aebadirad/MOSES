@@ -3,6 +3,14 @@ var Moses = {
   //note, marklogic requires this to do the backend calculations for certain geo functions
   geo: require('/MarkLogic/geospatial/geospatial'),
   pos: require('/lib/pos/index.sjs'),
+  array_intersect: function(a, b) {
+    var t;
+    if (b.length > a.length) t = b, b = a, a = t; // indexOf to loop over shorter
+    return a.filter(function(e) {
+      if (b.indexOf(e) !== -1) return true;
+    });
+  },
+
   methods: function(obj) {
     return Object.getOwnPropertyNames(obj).filter(function(p) {
       return typeof obj[p] === 'function';
@@ -421,7 +429,10 @@ Moses.QueryFilter = {
     }
     var translatedDocs = [];
     for (i = 0; i < docs.length; i++) {
-      var fullDoc = docs[i].toObject();
+      var fullDoc = docs[i];
+      if (typeof docs[i].toObject === 'function') {
+        var fullDoc = docs[i].toObject();
+      }
       fullDoc.country = Moses.Country.getCountryNameByCode(fullDoc.countryCode);
       if (fullDoc.admin1Code) {
         fullDoc.province = Moses.AdminCode.getNameByCode(fullDoc.countryCode +
@@ -1194,12 +1205,28 @@ Moses.Extract = {
           var phraseCats = Moses.Extract.getPhraseCategories(updatedWords, i);
           //check to see if this is a  place,place pair.
           if (Moses.Extract.isPlacePair(updatedWords, i)) {
+            var f = parseInt(i) + 2;
             var resolvedPlaces = Moses.Extract.resolvePlacePair(updatedWords, i);
-            if (resolvedPlaces) {
-
-            } else {
-
+            if (resolvedPlaces.first.length > 0 && resolvedPlaces.second.legnth > 0) {
+              if (resolvedPlaces.first.length === 1 && !updatedWords[i].confirmed) {
+                updatedWords[i].location = resolvedPlaces.first[0];
+                updatedWords[i].confirmed = true;
+                sentences[s][i] = updatedWords[i];
+              }
+              if (resolvedPlaces.second.length === 1 && !updatedWords[f].confirmed) {
+                updatedWords[f].location = resolvedPlaces.second[0];
+                updatedWords[f].confirmed = true;
+                sentences[s][f] = updatedWords[f];
+              }
+              if (resolvedPlaces.second.length > 1 && !updatedWords[f].confirmed) {
+                sentences[s][f].locations = resolvedPlaces.second;
+              }
+              if (resolvedPlaces.first.length > 1 && !updatedWords[i].confirmed) {
+                sentences[s][i].locations = resolvedPlaces.first;
+              }
             }
+            //if we don't match anything on the pass, that's okay, we'll catch it in the final
+            //go around.
           }
         }
       }
@@ -1230,36 +1257,37 @@ Moses.Extract = {
     var f = parseInt(i) + 2;
     var thisWord = updatedWords[i];
     var nextWord = updatedWords[f];
-    var locations = {};
+    var locations = {
+      first: [],
+      second: []
+    };
     //check if any of these are confirmed locations
     if (!nextWord.confirmed && thisWord.confirmed) {
       //the 'lower' is confirmed here
-      var thisWordConfirmed = getByConfirmedLower(thisWord, nextWord);
-      if(thisWordConfirmed){
+      var thisWordConfirmed = Moses.Extract.getByConfirmedLower(thisWord, nextWord);
+      if (thisWordConfirmed) {
         locations.first = thisWordConfirmed;
-        locations.second = nextWord;
+        //locations.second = [nextWord];
       }
     } else if (nextWord.confirmed && !thisWord.confirmed) {
       //the 'higher' is confirmed here
 
-       var nextWordConfirmed = getByConfirmedHigher(nextWord, thisWord);
-      if(nextWordConfirmed){
-        locations.first = thisWord;
+      var nextWordConfirmed = Moses.Extract.getByConfirmedHigher(nextWord, thisWord);
+      if (nextWordConfirmed) {
+        //locations.first = [thisWord];
         locations.second = nextWordConfirmed;
       }
     } else if (!nextWord.confirmed && !thisWord.confirmed) {
       //doh, neither is confirmed, more processing required!
-      res = cts.estimate(cts.andQuery([cts.directoryQuery(
-          '/locations/'),
-        cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], thisWord.word, [
-          'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
-        ]),
-        cts.jsonPropertyValueQuery(['countryCode'], )
-      ])));
-  }
-  return locations;
-},
-getPhraseCategories: function(updatedWords, i) {
+      var unconfirmedPair = Moses.Extract.getUnconfirmedPair(thisWord, nextWord);
+      if (unconfirmedPair) {
+        locations.first = unconfirmedPair.first;
+        locations.second = unconfirmedPair.second;
+      }
+    }
+    return locations;
+  },
+  getPhraseCategories: function(updatedWords, i) {
     var categories = [];
     var oneForward = updatedWords[i == updatedWords.length - 1 ? 0 : i + 1] ? updatedWords[i ==
       updatedWords.length - 1 ? 0 : i + 1] : {
@@ -1417,6 +1445,56 @@ getPhraseCategories: function(updatedWords, i) {
 
     return results;
   },
+  getUnconfirmedPair: function(firstPlace, secondPlace) {
+    var confirmedLocations = {};
+    var confirmedLocations = {};
+    var firstPlaceCountry = Moses.Extract.getCountryCodesOnly(firstPlace.word);
+    var secondPlaceCountry = Moses.Extract.getCountryCodesOnly(secondPlace.word);
+    var intersectCountry = Moses.array_intersect(firstPlaceCountry, secondPlaceCountry);
+    var possibleSecondLocations = [];
+    for (i in intersectCountry) {
+      var countryCode = intersectCountry[i];
+      var tempResults = cts.search(cts.andQuery([cts.directoryQuery('/locations/'), cts.jsonPropertyRangeQuery(
+        ['countryCode'], '=', countryCode), cts.jsonPropertyRangeQuery(['featureClass'],
+        '=', 'A'), cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+        secondPlace.word, ['whitespace-sensitive', 'case-insensitive', 'unwildcarded'])])).toArray();
+      for (m in tempResults) {
+        possibleSecondLocations.push(tempResults[m].toObject());
+      }
+    }
+    var possibleFirstLocations = [];
+    for (i in possibleSecondLocations) {
+      var secondLoc = possibleSecondLocations[i];
+      var andQuery = [cts.directoryQuery('/locations/'), cts.jsonPropertyRangeQuery([
+        'countryCode'
+      ], '=', secondLoc.countryCode), cts.jsonPropertyRangeQuery(['featureCode'], '!=',
+        'PCLI'), cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], firstPlace.word, [
+        'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
+      ])];
+
+      if (secondLoc.admin1Code) {
+        andQuery.push(cts.jsonPropertyValueQuery(
+          'admin1Code', secondLoc.admin1Code));
+      }
+
+      if (secondLoc.admin2Code) {
+        andQuery.push(cts.jsonPropertyValueQuery(
+          'admin2Code', secondLoc.admin2Code));
+      }
+      var tempResults = cts.search(cts.andQuery(andQuery)).toArray();
+      for (m in tempResults) {
+        possibleFirstLocations.push(tempResults[m].toObject());
+      }
+      if (!tempResults) {
+        //remove first locations that don't match anything
+        possibleFirstLocations.splice(i, 1);
+      }
+    }
+    confirmedLocations.second = possibleSecondLocations;
+    confirmedLocations.first = possibleFirstLocations;
+    return confirmedLocations;
+
+  },
   getByConfirmedHigher: function(confirmed, place) {
     var andQuery = [cts.directoryQuery(
         '/locations/'),
@@ -1439,7 +1517,7 @@ getPhraseCategories: function(updatedWords, i) {
     return cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
         'population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
-      'geonameid', []), 'ascending')]).toArray()[0];
+      'geonameid', []), 'ascending')]).toArray();
   },
 
   getByConfirmedLower: function(confirmed, place) {
@@ -1462,7 +1540,7 @@ getPhraseCategories: function(updatedWords, i) {
     return cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
         'population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
-      'geonameid', []), 'ascending')]).toArray()[0];
+      'geonameid', []), 'ascending')]).toArray();
   },
   getOnlyPlace: function(place, type) {
     var result;
@@ -1487,6 +1565,13 @@ getPhraseCategories: function(updatedWords, i) {
         'exact'
       ])
     ])) > 0) ? true : false;
+  },
+  getCountryCodesOnly: function(word) {
+    return cts.elementValues(xs.QName("countryCode"), null, null, cts.andQuery([
+      cts.directoryQuery('/locations/'), cts.jsonPropertyValueQuery(['asciiname',
+        'alternatenames'
+      ], word, ['whitespace-sensitive', 'case-insensitive', 'unwildcarded'])
+    ])).toString().split('\n');
   },
   getDefault: function(place) {
     return cts.search(cts.andQuery([cts.directoryQuery(
@@ -1706,7 +1791,7 @@ getPhraseCategories: function(updatedWords, i) {
       ])
     ])).toArray()[0].toObject());
   },
-  getgetry: function(place) {
+  getCountry: function(place) {
     return (cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'),
       cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1917,11 +2002,17 @@ getPhraseCategories: function(updatedWords, i) {
         var ner = wordObject.ner;
         var after = wordObject.after;
         var id;
+        var loc;
         if (tag === 'NNPL') {
-
-          var loc = Moses.Extract.resolveLocation(word);
-          if (loc.count > 0) {
-            id = parseInt(loc.clone().next().value.root.geonameid);
+          if (wordObject.confirmed) {
+            loc = wordObject.location;
+            id = wordObject.location.geonameid;
+          } else {
+            //now we gotta try to figure it out!
+            loc = Moses.Extract.resolveLocation(word);
+            if (loc.count > 0) {
+              id = parseInt(loc.clone().next().value.root.geonameid);
+            }
           }
           if (id) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
