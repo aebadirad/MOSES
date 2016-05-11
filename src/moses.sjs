@@ -1764,7 +1764,17 @@ Moses.Extract = {
         'population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]).toArray();
-    if (!response) {
+    if (!response || response.length === 0 ) {
+      response = cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'), cts.jsonPropertyValueQuery(['asciiname',
+        'name'
+      ], place.word, ['case-insensitive', 'whitespace-sensitive',
+        'unwildcarded', 'punctuation-insensitive'
+      ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
+     if (!response || response.length === 0 ) {
       response = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
         'alternatenames'
@@ -1774,7 +1784,7 @@ Moses.Extract = {
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'ascending')]).toArray();
     }
-    if (response && response.length > 0) {
+    if (response) {
       response = response[0].toObject();
     }
 
