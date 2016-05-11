@@ -1309,7 +1309,8 @@ Moses.Extract = {
         //one more time we loop, now we have no confirmation help.
         for (i in sentence) {
           var wordObject = sentence[i];
-          if (wordObject.pos === 'NNPL' && (!wordObject.length || wordObject.locations.length === 0) && !wordObject.confirmed) {
+          if (wordObject.pos === 'NNPL' && (!wordObject.locations.length || wordObject.locations
+              .length === 0) && !wordObject.confirmed) {
             if (confirmedLocations.length > 0) {
               var confirmedLocs = [];
               for (loc in confirmedLocations) {
@@ -1743,7 +1744,7 @@ Moses.Extract = {
     ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]).toArray();
-    if (response.length === 0) {
+    if (!response) {
       response = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
         'alternatenames'
@@ -1753,7 +1754,7 @@ Moses.Extract = {
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'ascending')]).toArray();
     }
-    if (response.length > 0) {
+    if (response && response.length > 0) {
       response = response[0].toObject();
     }
 
@@ -2185,7 +2186,7 @@ Moses.Extract = {
           if (wordObject.confirmed) {
             loc = wordObject.location;
             id = wordObject.location.geonameid;
-          } else if (wordObject.locations.length > 0) {
+          } else if (wordObject.locations.length > 0 && !wordObject.confirmed) {
             //now we gotta try to figure it out!
             //does it have locations with it? 
             var mostPopulation = Math.max.apply(Math, wordObject.locations.map(function(o) {
@@ -2202,11 +2203,12 @@ Moses.Extract = {
           } else {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
-            loc = Moses.Extract.getDefault(word);
+            loc = Moses.Extract.getDefault(wordObject);
             if (loc) {
               id = parseInt(loc.geonameid);
             }
           }
+
           if (id) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
               wordObject.originalText + '</span>';
