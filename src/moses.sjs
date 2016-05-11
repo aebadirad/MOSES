@@ -1309,7 +1309,7 @@ Moses.Extract = {
         //one more time we loop, now we have no confirmation help.
         for (i in sentence) {
           var wordObject = sentence[i];
-          if (wordObject.pos === 'NNPL' && (wordObject.locations.length === 0) && !wordObject.confirmed) {
+          if (wordObject.pos === 'NNPL' && (!wordObject.length || wordObject.locations.length === 0) && !wordObject.confirmed) {
             if (confirmedLocations.length > 0) {
               var confirmedLocs = [];
               for (loc in confirmedLocations) {
