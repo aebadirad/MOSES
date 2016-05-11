@@ -1140,7 +1140,8 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if ((wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') && Moses.blackList
+        if ((wordObject.ner === 'LOCATION' || (lastWord.toLowerCase() !== 'the' && wordObject.ner ===
+            'ORGANIZATION')) && Moses.blackList
           .indexOf(wordObject.word.toLowerCase()) === -1) {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
@@ -1744,14 +1745,23 @@ Moses.Extract = {
       ], word, ['whitespace-sensitive', 'case-insensitive', 'unwildcarded'])
     ])).toString().split('\n');
   },
-  getDefault: function(place) {
+  getDefault: function(place, countryCode, admin1Code) {
     var response = null;
-    response = cts.search(cts.andQuery([cts.directoryQuery(
+
+    var andQuery = [cts.directoryQuery(
       '/locations/'), cts.jsonPropertyValueQuery(['asciiname', 'name', 'alternatenames'],
       place.word, [
         'case-insensitive', 'whitespace-sensitive',
         'unwildcarded', 'punctuation-insensitive'
-      ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+      ])];
+    if (countryCode) {
+      andQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=', countryCode));
+    }
+    if(admin1Code){
+       andQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', admin1Code));
+    }
+    response = cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
+        'population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]).toArray();
     if (!response) {
@@ -2179,7 +2189,8 @@ Moses.Extract = {
       records: [],
       text: ''
     }
-
+    var countryCode = null;
+    var admin1Code = null;
     var text = '';
     var idList = [];
     for (var s in sentences) {
@@ -2213,12 +2224,13 @@ Moses.Extract = {
           } else {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
-            loc = Moses.Extract.getDefault(wordObject);
+            loc = Moses.Extract.getDefault(wordObject, countryCode, admin1Code);
             if (loc) {
               id = parseInt(loc.geonameid);
             }
           }
-
+          countryCode = loc.countryCode;
+          admin1Code = loc.admin1Code != 00 ? loc.admin1Code : null;
           if (id) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
               wordObject.originalText + '</span>';
