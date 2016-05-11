@@ -1325,28 +1325,38 @@ Moses.Extract = {
               var admin1Code = closestConf.location.admin1Code;
               var estimate = parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
                   '/locations/'),
-                cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+                cts.jsonPropertyWordQuery(['asciiname', 'name'],
                   wordObject.word, ['case-insensitive', 'whitespace-sensitive',
                     'diacritic-insensitive',
                     'unwildcarded'
-                  ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
-                  'exact'
-                ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                  ]), cts.jsonPropertyRangeQuery('featureCode', '=', 'PLCI')
               ])));
               var location;
               if (estimate > 0) {
                 location = cts.search(cts.andQuery([cts.directoryQuery(
                     '/locations/'),
-                  cts.jsonPropertyValueQuery(['asciiname', 'name'],
+                  cts.jsonPropertyWordQuery(['asciiname', 'name'],
                     wordObject.word, ['case-insensitive', 'whitespace-sensitive',
                       'diacritic-insensitive',
                       'unwildcarded'
-                    ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
-                    'exact'
-                  ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                    ]), cts.jsonPropertyRangeQuery('featureCode', '=', 'PCLI')
                 ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                   'descending'), cts.indexOrder(cts.jsonPropertyReference(
                   'geonameid', []), 'ascending')]).toArray()[0];
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyValueQuery(['asciiname', 'name'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
+                      'exact'
+                    ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
                 if (!location) {
                   location = cts.search(cts.andQuery([cts.directoryQuery(
                       '/locations/'),
@@ -1766,16 +1776,33 @@ Moses.Extract = {
         'case-insensitive', 'whitespace-sensitive',
         'unwildcarded', 'punctuation-insensitive'
       ])];
+
+    // first let's check high level countries embedded:
+
+    response = cts.search(cts.andQuery([
+      cts.directoryQuery('/locations/'),
+      cts.jsonPropertyWordQuery(['asciiname', 'name'],
+        place.word, ['case-insensitive', 'whitespace-sensitive', 'unwildcarded',
+          'punctuation-insensitive'
+        ]),
+      cts.jsonPropertyRangeQuery('featureCode', '=', 'PCLI')
+    ]), [cts.indexOrder(cts.jsonPropertyReference(
+        'population', []),
+      'descending'), cts.indexOrder(cts.jsonPropertyReference(
+      'geonameid', []), 'ascending')]).toArray();
+
     if (countryCode) {
       andQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=', countryCode));
     }
     if (admin1Code) {
       andQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', admin1Code));
     }
-    response = cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
-        'population', []),
-      'descending'), cts.indexOrder(cts.jsonPropertyReference(
-      'geonameid', []), 'ascending')]).toArray();
+    if (!response || response.length === 0) {
+      response = cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
+          'population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
     if (!response || response.length === 0) {
 
       response = cts.search(cts.andQuery([
