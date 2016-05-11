@@ -49,6 +49,7 @@ var Moses = {
     }
     return records;
   },
+  blackList:['west', 'north', 'east', 'south'],
   config: {
     nlpServer: "http://localhost:9000/",
     nlpParams: [{
@@ -1139,7 +1140,7 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if (wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') {
+        if ((wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') && Moses.blackList.indexOf(wordObject.word.toLowerCase()) === -1) {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1163,7 +1164,10 @@ Moses.Extract = {
         }
 
         if (wordObject.ner === 'O' && (wordObject.pos ===
-            'NNP' || wordObject.pos === 'NN')) {
+            'NNP' || wordObject.pos === 'NN') && parseInt(cts.estimate(cts.jsonPropertyValueQuery(
+            'word', word.toLowerCase(), [
+              'exact'
+            ]))) === 0) {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyRangeQuery(['asciiname', 'alternatenames'],
@@ -1240,98 +1244,83 @@ Moses.Extract = {
           }
         }
       }
+      // end of first pass
 
-      //on last pass, let's make sure we didn't leave anything hanging
-      if (parseInt(s) === sentences.length) {
-        var confirmedFirstLocations = Moses.Extract.scanConfirmedLocations(sentences[0]);
-        var countFirstLocations = Moses.Extract.countLocations(sentences[0]);
-        //do we still have unconfirmed locations?
-        if (countFirstLocations < confirmedFirstLocations) {
-
+      // now we do a second pass to resolve the unconfirmed possibles
+      for (s in sentences) {
+        var sentence = sentences[s];
+        var confirmedLocations = Moses.Extract.scanConfirmedLocations(sentences[s]);
+        var countLocations = Moses.Extract.countLocations(sentences[s]);
+        if (countLocations === confirmedLocations.length) {
+          //if there's no locations, no point in looping through, or if all are confirmed
+          continue;
         }
-      }
-    }
-    // end of first pass
-
-    // now we do a second pass to resolve the unconfirmed possibles
-    for (s in sentences) {
-      var sentence = sentences[s];
-      var confirmedLocations = Moses.Extract.scanConfirmedLocations(sentences[s]);
-      var countLocations = Moses.Extract.countLocations(sentences[s]);
-      if (countLocations === confirmedLocations.length) {
-        //if there's no locations, no point in looping through, or if all are confirmed
-        continue;
-      }
-      //now let's go through the words and find the unconfirmed locations with multiple possible locs
-      for (i in sentence) {
-        var wordObject = sentence[i];
-        if (wordObject.pos === 'NNPL' && (wordObject.locations.length > 1) && !wordObject.confirmed) {
-          // let's see how close the other confirmed locations are
-          if (confirmedLocations.length > 0) {
-            var confirmedLocs = [];
-            for (loc in confirmedLocations) {
-              confirmedLocs.push(confirmedLocations[loc].index);
-            }
-            var closest = Moses.closest_number(i, confirmedLocs);
-            var closestConf = confirmedLocations.filter(function(el) {
-              return el.index === closest;
-            })[0];
-            var countryCode = closestConf.location.countryCode;
-            var admin1Code = closestConf.location.admin1Code;
-            var matches = wordObject.locations.filter(function(el) {
-              return (el.countryCode === countryCode && el.admin1Code === admin1Code);
-            });
-
-            if (matches.length === 1) {
-              wordObject.location = matches[0];
-              wordObject.confirmed = true;
-              wordObject.locations = null;
-              sentences[s][i] = wordObject;
-            } else if (matches.length > 1) {
-              //well crap, there's two things named exactly at this level now. Or more. Time to get the most popular.
-              var mostPopulation = Math.max.apply(Math, matches.map(function(o) {
-                return o.population;
-              }));
-              var mostPopulated = matches.filter(function(o) {
-                return o.population === mostPopulation;
+        //now let's go through the words and find the unconfirmed locations with multiple possible locs
+        for (i in sentence) {
+          var wordObject = sentence[i];
+          if (wordObject.pos === 'NNPL' && (wordObject.locations.length > 1) && !wordObject.confirmed) {
+            // let's see how close the other confirmed locations are
+            if (confirmedLocations.length > 0) {
+              var confirmedLocs = [];
+              for (loc in confirmedLocations) {
+                confirmedLocs.push(confirmedLocations[loc].index);
+              }
+              var closest = Moses.closest_number(i, confirmedLocs);
+              var closestConf = confirmedLocations.filter(function(el) {
+                return el.index === closest;
               })[0];
-              wordObject.location = mostPopulated;
-              wordObject.confirmed = true;
-              wordObject.locations = null;
-              sentences[s][i] = wordObject;
+              var countryCode = closestConf.location.countryCode;
+              var admin1Code = closestConf.location.admin1Code;
+              var matches = wordObject.locations.filter(function(el) {
+                return (el.countryCode === countryCode && el.admin1Code === admin1Code);
+              });
+
+              if (matches.length === 1) {
+                wordObject.location = matches[0];
+                wordObject.confirmed = true;
+                wordObject.locations = null;
+                sentences[s][i] = wordObject;
+              } else if (matches.length > 1) {
+                //well crap, there's two things named exactly at this level now. Or more. Time to get the most popular.
+                //now lets see if there's exact names
+                var exactMatches = matches.filter(function(el) {
+                  return (el.name.toLowerCase() === wordObject.word.toLowerCase() || el.asciiname
+                    .toLowerCase() === wordObject.word.toLowerCase());
+                });
+                if (exactMatches.length > 0) {
+                  matches = exactMatches;
+                }
+                var mostPopulation = Math.max.apply(Math, matches.map(function(o) {
+                  return o.population;
+                }));
+                var mostPopulated = matches.filter(function(o) {
+                  return o.population === mostPopulation;
+                })[0];
+                wordObject.location = mostPopulated;
+                wordObject.confirmed = true;
+                wordObject.locations = null;
+                sentences[s][i] = wordObject;
+              }
             }
           }
         }
-      }
 
-      //one more time we loop, now we have no confirmation help.
-      for (i in sentence) {
-        var wordObject = sentence[i];
-        if (wordObject.pos === 'NNPL' && (wordObject.locations.length === 0) && !wordObject.confirmed) {
-          if (confirmedLocations.length > 0) {
-            var confirmedLocs = [];
-            for (loc in confirmedLocations) {
-              confirmedLocs.push(confirmedLocations[loc].index);
-            }
-            var closest = Moses.closest_number(i, confirmedLocs);
-            var closestConf = confirmedLocations.filter(function(el) {
-              return el.index === closest;
-            })[0];
-            var countryCode = closestConf.location.countryCode;
-            var admin1Code = closestConf.location.admin1Code;
-            var estimate = parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
-                '/locations/'),
-              cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
-                wordObject.word, ['case-insensitive', 'whitespace-sensitive',
-                  'diacritic-insensitive',
-                  'unwildcarded'
-                ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
-                'exact'
-              ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
-            ])));
-            var location;
-            if (estimate > 0) {
-              location = cts.search(cts.andQuery([cts.directoryQuery(
+        //one more time we loop, now we have no confirmation help.
+        for (i in sentence) {
+          var wordObject = sentence[i];
+          if (wordObject.pos === 'NNPL' && (wordObject.locations.length === 0) && !wordObject.confirmed) {
+            if (confirmedLocations.length > 0) {
+              var confirmedLocs = [];
+              for (loc in confirmedLocations) {
+                confirmedLocs.push(confirmedLocations[loc].index);
+              }
+              var closest = Moses.closest_number(i, confirmedLocs);
+              var closestConf = confirmedLocations.filter(function(el) {
+                return el.index === closest;
+              })[0];
+              var countryCode = closestConf.location.countryCode;
+              var admin1Code = closestConf.location.admin1Code;
+              var estimate = parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
                   '/locations/'),
                 cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
                   wordObject.word, ['case-insensitive', 'whitespace-sensitive',
@@ -1340,25 +1329,64 @@ Moses.Extract = {
                   ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
                   'exact'
                 ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
-              ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
-                'descending'), cts.indexOrder(cts.jsonPropertyReference(
-                'geonameid', []), 'ascending')]).toArray()[0];
-            } else {
-              location = cts.search(cts.andQuery([cts.directoryQuery(
-                  '/locations/'),
-                cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
-                  wordObject.word, ['case-insensitive', 'whitespace-sensitive',
-                    'diacritic-insensitive',
-                    'unwildcarded'
-                  ])
-              ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
-                'descending'), cts.indexOrder(cts.jsonPropertyReference(
-                'geonameid', []), 'ascending')]).toArray()[0];
-            }
-            if (location) {
-              wordObject.location = location.toObject();
-              wordObject.confirmed = true;
-              sentences[s][i] = wordObject;
+              ])));
+              var location;
+              if (estimate > 0) {
+                location = cts.search(cts.andQuery([cts.directoryQuery(
+                    '/locations/'),
+                  cts.jsonPropertyValueQuery(['asciiname', 'name'],
+                    wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                      'diacritic-insensitive',
+                      'unwildcarded'
+                    ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
+                    'exact'
+                  ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                  'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                  'geonameid', []), 'ascending')]).toArray()[0];
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ]), cts.jsonPropertyValueQuery('admin1Code', admin1Code, [
+                      'exact'
+                    ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
+              } else {
+                location = cts.search(cts.andQuery([cts.directoryQuery(
+                    '/locations/'),
+                  cts.jsonPropertyValueQuery(['asciiname', 'name'],
+                    wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                      'diacritic-insensitive',
+                      'unwildcarded'
+                    ])
+                ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                  'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                  'geonameid', []), 'ascending')]).toArray()[0];
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ])
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
+              }
+              if (location) {
+                wordObject.location = location.toObject();
+                wordObject.confirmed = true;
+                sentences[s][i] = wordObject;
+              }
             }
           }
         }
@@ -1706,14 +1734,28 @@ Moses.Extract = {
     ])).toString().split('\n');
   },
   getDefault: function(place) {
-    return cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
-      'alternatenames'
-    ], place.word, ['case-insensitive', 'whitespace-sensitive',
+    var response = cts.search(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyWordQuery(['asciiname', 'name'], place.word, [
+      'case-insensitive', 'whitespace-sensitive',
       'unwildcarded', 'punctuation-insensitive'
     ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
-      'geonameid', []), 'ascending')]).toArray()[0].toObject();
+      'geonameid', []), 'ascending')]);
+    if (!response) {
+      response = cts.search(cts.andQuery([cts.directoryQuery(
+        '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
+        'alternatenames'
+      ], place.word, ['case-insensitive', 'whitespace-sensitive',
+        'unwildcarded', 'punctuation-insensitive'
+      ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]);
+    }
+    if (response) {
+      response = response.toArray()[0].toObject();
+    }
+
+    return response;
   },
   getGeneric: function(place) {
     return cts.search(cts.andQuery([cts.directoryQuery(
@@ -1908,11 +1950,13 @@ Moses.Extract = {
     ])).toArray()[0].toObject());
   },
   getCountryCode: function(place) {
-    return (cts.search(cts.andQuery([cts.directoryQuery(
-        '/getry-info/'),
+    var countryDoc = (cts.search(cts.andQuery([cts.directoryQuery(
+        '/country-info/'),
       cts.jsonPropertyRangeQuery(['iso', 'iso3', 'fips'], '=',
         place.word)
     ])).toArray()[0].toObject());
+    var geonameid = countryDoc.geonameid;
+    return cts.doc('/locations/' + geonameid + '.json').toObject();
   },
   getProvinceCode: function(place) {
     return (cts.search(cts.andQuery([cts.directoryQuery(
@@ -2139,11 +2183,24 @@ Moses.Extract = {
           if (wordObject.confirmed) {
             loc = wordObject.location;
             id = wordObject.location.geonameid;
-          } else {
+          } else if (wordObject.locations.length > 0) {
             //now we gotta try to figure it out!
+            //does it have locations with it? 
+            var mostPopulation = Math.max.apply(Math, wordObject.locations.map(function(o) {
+              return o.population;
+            }));
+            var mostPopulated = wordObject.locations.filter(function(o) {
+              return o.population === mostPopulation;
+            })[0];
+            wordObject.location = mostPopulated;
+            wordObject.confirmed = true;
+            wordObject.locations = null;
+            loc = wordObject.location;
+            id = wordObject.location.geonameid;
+          } else {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
-            loc = Moses.Extract.resolveLocation(word);
+            loc = Moses.Extract.getDefault(word);
             if (loc.count > 0) {
               id = parseInt(loc.clone().next().value.root.geonameid);
             }
