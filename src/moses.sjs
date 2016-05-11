@@ -1140,14 +1140,21 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if ((wordObject.ner === 'LOCATION' || (lastWord.toLowerCase() !== 'the' && wordObject.ner ===
+        // is it an acronym? just a word? capitolized? what?
+        wordObject = Moses.Extract.setPlaceStats(wordObject);
+        if ((wordObject.ner === 'LOCATION' || (wordObject.ner ===
             'ORGANIZATION')) && Moses.blackList
           .indexOf(wordObject.word.toLowerCase()) === -1) {
-          matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
-              '/locations/'),
-            cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
-              word, ['exact'])
-          ]));
+          if ((lastWord.pos === 'DT') && wordObject.ner ===
+            'ORGANIZATION' && wordObject.isAcronym) {
+
+          } else {
+            matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
+                '/locations/'),
+              cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
+                word, ['exact'])
+            ]));
+          }
         }
         if (wordObject.ner === 'O' && (wordObject.pos === 'NN' || wordObject.pos === 'NNP') &&
           (word.length === 2 || word.length === 3) && word === word.toUpperCase() && lastTag ===
@@ -1176,8 +1183,6 @@ Moses.Extract = {
               '=', word)
           ]));
         }
-        // is it an acronym? just a word? capitolized? what?
-        wordObject = Moses.Extract.setPlaceStats(wordObject);
 
         if (matchFound > 0) {
           var exactType = Moses.Extract.isOnlyPlace(wordObject);
@@ -1326,7 +1331,8 @@ Moses.Extract = {
               var estimate = parseInt(cts.estimate(cts.andQuery([cts.directoryQuery(
                   '/locations/'),
                 cts.jsonPropertyRangeQuery(['asciiname', 'name'],
-                 '=', wordObject.word), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                  '=', wordObject.word), cts.jsonPropertyRangeQuery('countryCode', '=',
+                  countryCode)
               ])));
               var location;
               if (estimate > 0) {
