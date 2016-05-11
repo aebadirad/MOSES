@@ -1781,7 +1781,7 @@ Moses.Extract = {
 
     response = cts.search(cts.andQuery([
       cts.directoryQuery('/locations/'),
-      cts.jsonPropertyWordQuery(['asciiname', 'name'],
+      cts.jsonPropertyValueQuery(['asciiname', 'name'],
         place.word, ['case-insensitive', 'whitespace-sensitive', 'unwildcarded',
           'punctuation-insensitive'
         ]),
@@ -1807,8 +1807,8 @@ Moses.Extract = {
 
       response = cts.search(cts.andQuery([
         cts.directoryQuery('/locations/'),
-        cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
-          place.word, ['case-insensitive', 'whitespace-sensitive', 'unwildcarded',
+        cts.jsonPropertyValueQuery(['asciiname', 'name', 'alternatenames'],
+          place.word, ['case-insensitive', 'whitespace-insensitive', 'unwildcarded',
             'punctuation-insensitive'
           ]),
         cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
@@ -2287,9 +2287,26 @@ Moses.Extract = {
           } else {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
+            var confirmedLocations = Moses.Extract.scanConfirmedLocations(sentences[s]);
+            if (confirmedLocations.length > 0) {
+              var confirmedLocs = [];
+              for (loc in confirmedLocations) {
+                confirmedLocs.push(confirmedLocations[loc].index);
+              }
+              var closest = Moses.closest_number(i, confirmedLocs);
+              var closestConf = confirmedLocations.filter(function(el) {
+                return el.index === closest;
+              })[0];
+              countryCode = closestConf.location.countryCode;
+              admin1Code = closestConf.location.admin1Code;
+            }
+
             loc = Moses.Extract.getDefault(wordObject, countryCode, admin1Code);
             if (loc) {
               id = parseInt(loc.geonameid);
+               wordObject.confirmed = true;
+               wordObject.location = loc;
+               sentences[s][i] = wordObject;
             }
           }
           countryCode = loc.countryCode;
