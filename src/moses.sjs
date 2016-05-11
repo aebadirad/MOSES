@@ -49,7 +49,7 @@ var Moses = {
     }
     return records;
   },
-  blackList:['west', 'north', 'east', 'south'],
+  blackList: ['west', 'north', 'east', 'south'],
   config: {
     nlpServer: "http://localhost:9000/",
     nlpParams: [{
@@ -1140,7 +1140,8 @@ Moses.Extract = {
         }
         var nextObject = taggedWords[f];
         var prevObject = taggedWords[b];
-        if ((wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') && Moses.blackList.indexOf(wordObject.word.toLowerCase()) === -1) {
+        if ((wordObject.ner === 'LOCATION' || wordObject.ner === 'ORGANIZATION') && Moses.blackList
+          .indexOf(wordObject.word.toLowerCase()) === -1) {
           matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
               '/locations/'),
             cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'],
@@ -1734,14 +1735,15 @@ Moses.Extract = {
     ])).toString().split('\n');
   },
   getDefault: function(place) {
-    var response = cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyWordQuery(['asciiname', 'name'], place.word, [
+    var response = null;
+    response = cts.search(cts.andQuery([cts.directoryQuery(
+      '/locations/'), cts.jsonPropertyValueQuery(['asciiname', 'name'], place.word, [
       'case-insensitive', 'whitespace-sensitive',
       'unwildcarded', 'punctuation-insensitive'
     ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
-      'geonameid', []), 'ascending')]);
-    if (!response) {
+      'geonameid', []), 'ascending')]).toArray();
+    if (response.length === 0) {
       response = cts.search(cts.andQuery([cts.directoryQuery(
         '/locations/'), cts.jsonPropertyWordQuery(['asciiname',
         'alternatenames'
@@ -1749,10 +1751,10 @@ Moses.Extract = {
         'unwildcarded', 'punctuation-insensitive'
       ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
-        'geonameid', []), 'ascending')]);
+        'geonameid', []), 'ascending')]).toArray();
     }
-    if (response) {
-      response = response.toArray()[0].toObject();
+    if (response.length > 0) {
+      response = response[0].toObject();
     }
 
     return response;
@@ -2201,8 +2203,8 @@ Moses.Extract = {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
             loc = Moses.Extract.getDefault(word);
-            if (loc.count > 0) {
-              id = parseInt(loc.clone().next().value.root.geonameid);
+            if (loc) {
+              id = parseInt(loc.geonameid);
             }
           }
           if (id) {
@@ -2213,7 +2215,6 @@ Moses.Extract = {
               response.records.push(loc);
             }
           }
-
         }
         response.text += wordObject.originalText + after;
       }
