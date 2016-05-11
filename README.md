@@ -7,7 +7,15 @@ Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Cont
 [Demo is available at http://ebadirad.com:8055](http://ebadirad.com:8055/)
 
 ---
-##VERSION: 0.1-Alpha
+##VERSION: 0.2-Alpha
+
+###New features!
+
+1) Stanford NLP integration! You can use this now instead of the built in pos tagger!
+2) High accuracy, nearest-neighbor entity resolution! London, Ohio and London, England won't be confused again!
+3) (in progress) Semantic based entity identfication, words around the location's text itself help identify what it is (city, state, airport, etc)
+4) (in progress) Multi-sentence context parsing. The ability to look backwards and forwards for a nearest neighbor to match when there's nothing in the current sentence to help anchor.
+
 
 A lot of the code is messy and the built in API is really made just to make the demo work.
 
@@ -56,6 +64,19 @@ For anything that gets over a few thousand hits an hour, you'll need at least a 
 For public services, you'll want a 12+ core, 32 gig ram setup. You should be able to serve millions of requests an hour.
 
 **DISK SPACE FOR ALL SETUPS: You should have least 40gigs of free HD space. SSD is HIGHLY recommended (major performance).**
+
+---
+###OPTIONAL SOFTWARE
+
+A [Stanford NLP](http://stanfordnlp.github.io/CoreNLP/) server instance is optional. If you require high accuracy
+ (beyond the built-in) or any sort of reliable text enrichment or entity extraction, you will need this. You must be 
+running a server for MOSES to hit, instructions for doing that are [here](http://stanfordnlp.github.io/CoreNLP/corenlp-server.html).
+
+Make sure you modify Moses.config in the moses.sjs file. In the future a config file will be provided, but for now edit it there to
+ where your endpoint for Stanford NLP is at.
+
+You will require Java 1.8 JDK to run this. It does not have to be run locally, either. It'll take between 2 to 6gb of ram depending
+ on how much text you want to enrich. 
 
 ---
 ##Installation steps
