@@ -1632,6 +1632,15 @@ Moses.Extract = {
           'admin2Code', secondLoc.admin2Code));
       }
       var tempResults = cts.search(cts.andQuery(andQuery)).toArray();
+      if (tempResults.length === 0) {
+        andQuery = [cts.directoryQuery('/locations/'), cts.jsonPropertyRangeQuery([
+          'countryCode'
+        ], '=', secondLoc.countryCode), cts.jsonPropertyRangeQuery(['featureCode'], '!=',
+          'PCLI'), cts.jsonPropertyValueQuery(['asciiname', 'alternatenames'], firstPlace.word, [
+          'whitespace-sensitive', 'case-insensitive', 'unwildcarded'
+        ])];
+        tempResults = cts.search(cts.andQuery(andQuery)).toArray();
+      }
       for (m in tempResults) {
         possibleFirstLocations.push(tempResults[m].toObject());
       }
@@ -1738,10 +1747,11 @@ Moses.Extract = {
   getDefault: function(place) {
     var response = null;
     response = cts.search(cts.andQuery([cts.directoryQuery(
-      '/locations/'), cts.jsonPropertyValueQuery(['asciiname', 'name'], place.word, [
-      'case-insensitive', 'whitespace-sensitive',
-      'unwildcarded', 'punctuation-insensitive'
-    ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+      '/locations/'), cts.jsonPropertyValueQuery(['asciiname', 'name', 'alternatenames'],
+      place.word, [
+        'case-insensitive', 'whitespace-sensitive',
+        'unwildcarded', 'punctuation-insensitive'
+      ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]).toArray();
     if (!response) {
