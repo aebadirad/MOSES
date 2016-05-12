@@ -9,12 +9,32 @@ Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Cont
 ---
 ##VERSION: 0.2-Alpha
 
-###New features!
+##Features:
+- Gazetter
+  - Ability to search by text of names or known associated names (Big Apple for NYC)
+  - Polygon/circle bounded search
+  - Filter by class of feature to find (political border, natural geological formation)
+  - Filter by specific type of feature (building, city, capitol, country, forest)
+  - Nearest to point search: if given a point and any of the criteria above, find the closest place
+  - Multilingual - supports both native language and to ASCII names
+- Geospatial entity extraction and text enrichment
+  - Translate from text to specific location
+  - Contextual analysis
+  - Built in parts of speech and ruled based tagger OR
+  - Integration with Stanford NLP
+  - Automatic multiple entity resolution (London in Ohio is not the same as London, England)
+  - Organization geospatial identifiers (the Pentagon -> the building in DC, CNN -> the CNN Headquarters building in Atlanta)
+  - Multilingual - supports both native language and to ASCII names
+  - Airport Codes! PDX to SFO will produce the airports in Portland, Oregon and San Fran, California.
+- Low memory and processor usage! Demo runs only on 2 vcores and 8 gigs of ram
+- Low diskspace usage, total disk is under 40GB.
 
-1) Stanford NLP integration! You can use this now instead of the built in pos tagger!
-2) High accuracy, nearest-neighbor entity resolution! London, Ohio and London, England won't be confused again!
-3) (in progress) Semantic based entity identfication, words around the location's text itself help identify what it is (city, state, airport, etc)
-4) (in progress) Multi-sentence context parsing. The ability to look backwards and forwards for a nearest neighbor to match when there's nothing in the current sentence to help anchor.
+
+###New features added in 0.2-Alpha!
+
+1. Stanford NLP integration! You can use this now instead of the built in pos tagger!
+2. High accuracy, nearest-neighbor entity resolution! London, Ohio and London, England won't be confused again!
+3. (in progress) Semantic based entity identfication, words around the location's text itself help identify what it is (city, state, airport, etc)
 
 Notice:
 A lot of the code is messy and the built in API is really made just to make the demo work.
@@ -27,6 +47,7 @@ This is not released under a license yet, contact for information to use in a co
 1. Refactor code to standardize all database queries
 2. Create usable utility library to handle all data formatting
 3. Standardize naming convention of all variables/objects/functions
+4. Multi-sentence context parsing. The ability to look backwards and forwards for a nearest neighbor to match when there's nothing in the current sentence to help anchor.
 
 ###.4-Alpha Roadmap:
 1. Incorporate advanced entity resolution from current NLP to built-in capability
