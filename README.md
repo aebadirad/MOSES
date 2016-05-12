@@ -16,14 +16,37 @@ Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Cont
 3) (in progress) Semantic based entity identfication, words around the location's text itself help identify what it is (city, state, airport, etc)
 4) (in progress) Multi-sentence context parsing. The ability to look backwards and forwards for a nearest neighbor to match when there's nothing in the current sentence to help anchor.
 
-
+Notice:
 A lot of the code is messy and the built in API is really made just to make the demo work.
 
-Need to do some more code clean up, standardization of conventions (naming and coding!), and improve 
-the named entity recognition as well as the 'fuzzy' search.
+Now that it is in alpha, refactoring, functionization, optimization, general code clean up, standardization of conventions (naming and coding!), and API documentation need to be done.
 
-Use at your own risk. If all you are doing is entity extraction or geopoint resolution, it works 
-reasonably well. 
+This is not released under a license yet, contact for information to use in a commercial/government capacity.
+
+###.3-Alpha Roadmap:
+1) Refactor code to standardize all database queries
+2) Create usable utility library to handle all data formatting
+3) Standardize naming convention of all variables/objects/functions
+
+###.4-Alpha Roadmap:
+1) Incorporate advanced entity resolution from current NLP to built-in capability
+2) Increase resolution on organization/individual buildings
+3) External configuration file
+
+###.5-Alpha Roadmap:
+1) Optimization of enrichment processing
+2) Multipolygon support for search capability
+3) 
+
+###.6-Alpha Roadmap:
+1) Suggested locations (locations like this)
+2) Custom weighting
+3) Metrics capturing
+
+###.7-Alpha Roadmap:
+1) API call to ingest new locations/data into database
+2) More to come.
+
 
 ---
 ##REQUIRED SOFTWARE
