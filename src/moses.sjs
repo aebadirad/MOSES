@@ -1095,7 +1095,8 @@ Moses.Extract = {
         }
 
         //this thing looking back
-        if (((wordObject.pos === 'NNP' || wordObject.pos === 'NNPS') && (lastTag === 'NNP')) &&
+        if (((wordObject.pos === 'NNP' || wordObject.pos === 'NNPS' || wordObject.word.toLowerCase() ===
+            'of') && (lastTag === 'NNP')) &&
           wordObject.ner !==
           'DATE') {
           var prevWordList = wordList[wordList.length - 1];
@@ -1145,8 +1146,13 @@ Moses.Extract = {
         if ((wordObject.ner === 'LOCATION' || (wordObject.ner ===
             'ORGANIZATION')) && Moses.blackList
           .indexOf(wordObject.word.toLowerCase()) === -1) {
-          if ((lastWord.pos === 'DT') && wordObject.ner ===
+          if ((prevObject.pos === 'DT' || (['at', 'from', 'to', 'towards'].indexOf(prevObject.word
+              .toLowerCase()) === -1)) && wordObject.ner ===
             'ORGANIZATION' && wordObject.isAcronym) {
+
+          } else if ((['the'].indexOf(prevObject.word
+              .toLowerCase()) === -1) && wordObject.ner ===
+            'ORGANIZATION' && !wordObject.isAcronym) {
 
           } else {
             matchFound = cts.estimate(cts.andQuery([cts.directoryQuery(
@@ -1353,7 +1359,8 @@ Moses.Extract = {
                       '=', wordObject.word), cts.jsonPropertyValueQuery('admin1Code',
                       admin1Code, [
                         'exact'
-                      ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                      ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
+                    cts.jsonPropertyRangeQuery('featureClass', '!=', 'S')
                   ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                     'descending'), cts.indexOrder(cts.jsonPropertyReference(
                     'geonameid', []), 'ascending')]).toArray()[0];
@@ -1389,7 +1396,7 @@ Moses.Extract = {
                       wordObject.word, ['case-insensitive', 'whitespace-sensitive',
                         'diacritic-insensitive',
                         'unwildcarded'
-                      ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                      ]), cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
                   ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                     'descending'), cts.indexOrder(cts.jsonPropertyReference(
                     'geonameid', []), 'ascending')]).toArray()[0];
@@ -1397,14 +1404,26 @@ Moses.Extract = {
               } else {
                 location = cts.search(cts.andQuery([cts.directoryQuery(
                     '/locations/'),
-                  cts.jsonPropertyWordQuery(['asciiname', 'name'],
+                  cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
                     wordObject.word, ['case-insensitive', 'whitespace-sensitive',
                       'diacritic-insensitive',
                       'unwildcarded'
-                    ])
+                    ]), cts.jsonPropertyRangeQuery('featureCode', '=', 'PCLI')
                 ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                   'descending'), cts.indexOrder(cts.jsonPropertyReference(
                   'geonameid', []), 'ascending')]).toArray()[0];
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'name'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ])
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
                 if (!location) {
                   location = cts.search(cts.andQuery([cts.directoryQuery(
                       '/locations/'),
@@ -1802,8 +1821,22 @@ Moses.Extract = {
       'descending'), cts.indexOrder(cts.jsonPropertyReference(
       'geonameid', []), 'ascending')]).toArray();
 
+    if (!response || response.length === 0) {
+      response = cts.search(cts.andQuery([
+        cts.directoryQuery('/locations/'),
+        cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
+          place.word, ['case-insensitive', 'whitespace-sensitive', 'unwildcarded',
+            'punctuation-insensitive'
+          ]),
+        cts.jsonPropertyRangeQuery('featureCode', '=', 'CONT')
+      ]), [cts.indexOrder(cts.jsonPropertyReference(
+          'population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
     if (countryCode) {
       andQuery.push(cts.jsonPropertyRangeQuery('countryCode', '=', countryCode));
+      andQuery.push(cts.jsonPropertyRangeQuery('featureClass', '!=', 'S'));
     }
     if (admin1Code) {
       andQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', admin1Code));
@@ -1820,7 +1853,8 @@ Moses.Extract = {
         cts.jsonPropertyRangeQuery(['asciiname', 'name'],
           '=', place.word
         ),
-        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
+        cts.jsonPropertyRangeQuery('featureClass', '!=', 'S')
       ]), [cts.indexOrder(cts.jsonPropertyReference(
           'population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
@@ -1834,7 +1868,8 @@ Moses.Extract = {
           place.word, ['case-insensitive', 'whitespace-insensitive', 'unwildcarded',
             'punctuation-insensitive'
           ]),
-        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
+        cts.jsonPropertyRangeQuery('featureClass', '!=', 'S')
       ]), [cts.indexOrder(cts.jsonPropertyReference(
           'population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
@@ -1848,7 +1883,23 @@ Moses.Extract = {
           place.word, ['case-insensitive', 'whitespace-insensitive', 'unwildcarded',
             'punctuation-insensitive'
           ]),
-        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode), , cts.jsonPropertyRangeQuery(
+          'featureClass', '!=', 'S')
+      ]), [cts.indexOrder(cts.jsonPropertyReference(
+          'population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
+
+    if (!response || response.length === 0) {
+      response = cts.search(cts.andQuery([
+        cts.directoryQuery('/locations/'),
+        cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
+          place.word, ['case-insensitive', 'whitespace-insensitive', 'unwildcarded',
+            'punctuation-insensitive'
+          ]),
+        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
+        cts.jsonPropertyRangeQuery('featureClass', '!=', 'S')
       ]), [cts.indexOrder(cts.jsonPropertyReference(
           'population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
@@ -2289,12 +2340,12 @@ Moses.Extract = {
       records: [],
       text: ''
     }
-    var countryCode = null;
-    var admin1Code = null;
     var text = '';
     var idList = [];
     for (var s in sentences) {
       var taggedWords = sentences[s];
+      var countryCode = null;
+      var admin1Code = null;
       for (var i in taggedWords) {
         var wordObject = taggedWords[i];
         var tag = wordObject.pos;
@@ -2351,8 +2402,8 @@ Moses.Extract = {
           if (id) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
               wordObject.originalText + '</span>';
-            if (idList.indexOf(id) === -1) {
-              idList.push(id);
+            if (idList.indexOf(parseInt(id)) === -1) {
+              idList.push(parseInt(id));
               response.records.push(loc);
             }
           }
