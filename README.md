@@ -24,28 +24,28 @@ Now that it is in alpha, refactoring, functionization, optimization, general cod
 This is not released under a license yet, contact for information to use in a commercial/government capacity.
 
 ###.3-Alpha Roadmap:
-1) Refactor code to standardize all database queries
-2) Create usable utility library to handle all data formatting
-3) Standardize naming convention of all variables/objects/functions
+1. Refactor code to standardize all database queries
+2. Create usable utility library to handle all data formatting
+3. Standardize naming convention of all variables/objects/functions
 
 ###.4-Alpha Roadmap:
-1) Incorporate advanced entity resolution from current NLP to built-in capability
-2) Increase resolution on organization/individual buildings
-3) External configuration file
+1. Incorporate advanced entity resolution from current NLP to built-in capability
+2. Increase resolution on organization/individual buildings
+3. External configuration file
 
 ###.5-Alpha Roadmap:
-1) Optimization of enrichment processing
-2) Multipolygon support for search capability
-3) 
+1. Optimization of enrichment processing
+2. Multipolygon support for search capability
+3. Accept XML input and output 
 
 ###.6-Alpha Roadmap:
-1) Suggested locations (locations like this)
-2) Custom weighting
-3) Metrics capturing
+1. Suggested locations (locations like this)
+2. Custom weighting
+3. Metrics capturing
 
 ###.7-Alpha Roadmap:
-1) API call to ingest new locations/data into database
-2) More to come.
+1. API call to ingest new locations/data into database
+2. More to come.
 
 
 ---
