@@ -1320,6 +1320,8 @@ Moses.Extract = {
         }
 
         //one more time we loop, now we have no confirmation help.
+        var lastCountry;
+        var lastAdmin1Code;
         for (i in sentence) {
           var wordObject = sentence[i];
           var f = parseInt(i);
@@ -1433,6 +1435,19 @@ Moses.Extract = {
                       wordObject.word, ['case-insensitive', 'whitespace-sensitive',
                         'diacritic-insensitive',
                         'unwildcarded'
+                      ]),
+                    cts.jsonPropertyRangeQuery('countryCode', '=', countryCode)
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'name'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
                       ])
                   ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                     'descending'), cts.indexOrder(cts.jsonPropertyReference(
@@ -1452,6 +1467,8 @@ Moses.Extract = {
                 }
               }
               if (location) {
+                lastCountry = location.countryCode;
+                lastAdmin1Code = location.admin1Code;
                 wordObject.location = location.toObject();
                 wordObject.confirmed = true;
                 sentences[s][i] = wordObject;
@@ -1853,7 +1870,7 @@ Moses.Extract = {
       ], word, ['whitespace-sensitive', 'case-insensitive', 'unwildcarded'])
     ])).toString().split('\n');
   },
-  getDefault: function(place, countryCode, admin1Code) {
+  getDefault: function(place, countryCode, admin1Code, admin2Code) {
     var response = null;
 
     var andQuery = [cts.directoryQuery(
@@ -1897,8 +1914,25 @@ Moses.Extract = {
     if (admin1Code) {
       andQuery.push(cts.jsonPropertyRangeQuery('admin1Code', '=', admin1Code));
     }
+    if (admin2Code) {
+      andQuery.push(cts.jsonPropertyRangeQuery('admin2Code', '=', admin2Code));
+    }
     if (!response || response.length === 0) {
       response = cts.search(cts.andQuery(andQuery), [cts.indexOrder(cts.jsonPropertyReference(
+          'population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
+    if (!response || response.length === 0) {
+      response = cts.search(cts.andQuery([
+        cts.directoryQuery('/locations/'),
+        cts.jsonPropertyRangeQuery(['asciiname', 'name'],
+          '=', place.word
+        ),
+        cts.jsonPropertyRangeQuery('countryCode', '=', countryCode),
+        cts.jsonPropertyRangeQuery('featureClass', '!=', 'S'), cts.jsonPropertyRangeQuery(
+          'admin1Code', '=', admin1Code)
+      ]), [cts.indexOrder(cts.jsonPropertyReference(
           'population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'ascending')]).toArray();
@@ -1970,6 +2004,7 @@ Moses.Extract = {
       ])]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'descending')]).toArray();
+
     }
     if (!response || response.length === 0) {
       response = cts.search(cts.andQuery([cts.directoryQuery(
@@ -1981,8 +2016,15 @@ Moses.Extract = {
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'ascending')]).toArray();
     }
-    if (response) {
+
+    if (response && response.length && response.length > 0) {
+
       response = response[0].toObject();
+
+      if (response.featureClass === 'S' && countryCode && response.countryCode && response.countryCode !==
+        countryCode) {
+        response = null;
+      }
     }
 
     return response;
@@ -2398,10 +2440,12 @@ Moses.Extract = {
     }
     var text = '';
     var idList = [];
+    var countryCode = null;
+    var admin1Code = null;
+    var admin2Code = null;
     for (var s in sentences) {
       var taggedWords = sentences[s];
-      var countryCode = null;
-      var admin1Code = null;
+
       for (var i in taggedWords) {
         var wordObject = taggedWords[i];
         var tag = wordObject.pos;
@@ -2456,9 +2500,10 @@ Moses.Extract = {
               })[0];
               countryCode = closestConf.location.countryCode;
               admin1Code = closestConf.location.admin1Code;
+              admin2Code = closestConf.location.admin2Code;
             }
 
-            loc = Moses.Extract.getDefault(wordObject, countryCode, admin1Code);
+            loc = Moses.Extract.getDefault(wordObject, countryCode, admin1Code, admin2Code);
             if (loc) {
               id = parseInt(loc.geonameid);
               wordObject.confirmed = true;
@@ -2508,8 +2553,10 @@ Moses.Extract = {
               }
             }
           }
-          countryCode = loc.countryCode;
-          admin1Code = loc.admin1Code != 00 ? loc.admin1Code : null;
+          if (loc) {
+            countryCode = loc.countryCode;
+            admin1Code = loc.admin1Code != 00 ? loc.admin1Code : null;
+          }
         }
       }
     }
@@ -2521,7 +2568,7 @@ Moses.Extract = {
         var wordObject = taggedWords[i];
         var tag = wordObject.pos;
         var after = wordObject.after;
-        if (tag === 'NNPL') {
+        if (tag === 'NNPL' && wordObject.location) {
           var id = wordObject.location.geonameid;
           var loc = wordObject.location;
           if (id) {
