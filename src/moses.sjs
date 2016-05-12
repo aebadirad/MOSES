@@ -1371,6 +1371,18 @@ Moses.Extract = {
                 if (!location) {
                   location = cts.search(cts.andQuery([cts.directoryQuery(
                       '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'name'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ]), cts.jsonPropertyRangeQuery('featureCode', '=', 'PPLC')
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
                     cts.jsonPropertyRangeQuery(['asciiname', 'name'],
                       '=', wordObject.word), cts.jsonPropertyValueQuery('admin1Code',
                       admin1Code, [
@@ -1428,6 +1440,18 @@ Moses.Extract = {
                 ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
                   'descending'), cts.indexOrder(cts.jsonPropertyReference(
                   'geonameid', []), 'ascending')]).toArray()[0];
+                if (!location) {
+                  location = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyWordQuery(['asciiname', 'name'],
+                      wordObject.word, ['case-insensitive', 'whitespace-sensitive',
+                        'diacritic-insensitive',
+                        'unwildcarded'
+                      ]), cts.jsonPropertyRangeQuery('featureCode', '=', 'PPLC')
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
                 if (!location) {
                   location = cts.search(cts.andQuery([cts.directoryQuery(
                       '/locations/'),
@@ -1914,6 +1938,16 @@ Moses.Extract = {
         cts.jsonPropertyRangeQuery('featureCode', '=', 'CONT')
       ]), [cts.indexOrder(cts.jsonPropertyReference(
           'population', []),
+        'descending'), cts.indexOrder(cts.jsonPropertyReference(
+        'geonameid', []), 'ascending')]).toArray();
+    }
+    if (!response || response.length === 0) {
+      response = cts.search(cts.andQuery([cts.directoryQuery(
+          '/locations/'),
+        cts.jsonPropertyRangeQuery(['asciiname', 'name'],
+          '=', place.word), cts.jsonPropertyRangeQuery('featureCode',
+          '=', 'PPLC')
+      ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
         'descending'), cts.indexOrder(cts.jsonPropertyReference(
         'geonameid', []), 'ascending')]).toArray();
     }
