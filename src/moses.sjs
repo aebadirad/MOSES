@@ -2493,6 +2493,7 @@ Moses.Extract = {
       records: [],
       text: ''
     }
+    var sentences = sentences;
     var text = '';
     var idList = [];
     var countryCode = null;
@@ -2526,20 +2527,10 @@ Moses.Extract = {
           if (wordObject.confirmed) {
             loc = wordObject.location;
             id = wordObject.location.geonameid;
-          } else if (wordObject.locations.length > 0 && !wordObject.confirmed) {
+          } else if (wordObject.locations && wordObject.locations.length > 0 && !wordObject.confirmed) {
             //now we gotta try to figure it out!
             //does it have locations with it? 
-            var mostPopulation = Math.max.apply(Math, wordObject.locations.map(function(o) {
-              return o.population;
-            }));
-            var mostPopulated = wordObject.locations.filter(function(o) {
-              return o.population === mostPopulation;
-            })[0];
-            wordObject.location = mostPopulated;
-            wordObject.confirmed = true;
-            wordObject.locations = null;
-            loc = wordObject.location;
-            id = wordObject.location.geonameid;
+
           } else {
             //check some commonly used phrases around types of places
             var phraseCats = Moses.Extract.getPhraseCategories(taggedWords, i);
@@ -2567,7 +2558,7 @@ Moses.Extract = {
               if (prevObject.word === 'in' && prev2Object.pos === 'NNPL') {
                 var andQuery = [cts.directoryQuery(
                     '/locations/'),
-                  cts.jsonPropertyWordQuery(['asciiname', 'alternatenames'],
+                  cts.jsonPropertyWordQuery(['asciiname', 'name', 'alternatenames'],
                     prev2Object.word, ['case-insensitive', 'whitespace-sensitive',
                       'diacritic-insensitive',
                       'unwildcarded'
@@ -2585,6 +2576,21 @@ Moses.Extract = {
                     'population', []),
                   'descending'), cts.indexOrder(cts.jsonPropertyReference(
                   'geonameid', []), 'ascending')]).toArray()[0];
+
+                if (!doubleCheck || doubleCheck.length === 0) {
+                  doubleCheck = cts.search(cts.andQuery([cts.directoryQuery(
+                      '/locations/'),
+                    cts.jsonPropertyRangeQuery(['asciiname', 'name'],
+                      '=', prev2Object.word), cts.jsonPropertyValueQuery('admin1Code',
+                      wordObject.location.admin1Code, [
+                        'exact'
+                      ]), cts.jsonPropertyRangeQuery('countryCode', '=', wordObject.location
+                      .countryCode)
+                  ]), [cts.indexOrder(cts.jsonPropertyReference('population', []),
+                    'descending'), cts.indexOrder(cts.jsonPropertyReference(
+                    'geonameid', []), 'ascending')]).toArray()[0];
+                }
+
                 if (!doubleCheck || doubleCheck.length === 0) {
                   doubleCheck = cts.search(cts.andQuery([cts.directoryQuery(
                       '/locations/'),
@@ -2615,7 +2621,7 @@ Moses.Extract = {
         }
       }
     }
-
+    response.tagList = [];
     //now assemble the object
     for (var s in sentences) {
       var taggedWords = sentences[s];
@@ -2623,9 +2629,29 @@ Moses.Extract = {
         var wordObject = taggedWords[i];
         var tag = wordObject.pos;
         var after = wordObject.after;
-        if (tag === 'NNPL' && wordObject.location) {
-          var id = wordObject.location.geonameid;
-          var loc = wordObject.location;
+        if (tag === 'NNPL') {
+          var id = null;
+          var loc = null;
+          if (wordObject.locations && wordObject.locations.length > 0 && !wordObject.confirmed) {
+            //now we gotta try to figure it out!
+            //does it have locations with it? 
+            var mostPopulation = Math.max.apply(Math, wordObject.locations.map(function(o) {
+              return o.population;
+            }));
+            var mostPopulated = null;
+            mostPopulated = wordObject.locations.filter(function(o) {
+              return o.population === mostPopulation;
+            })[0];
+            if (!mostPopulated) {
+              mostPopulated = wordObject.locations[0];
+            }
+            id = JSON.parse(mostPopulated).geonameid;
+            loc = mostPopulated;
+          } else {
+            id = wordObject.location.geonameid;
+            loc = wordObject.location;
+          }
+
           if (id) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
               wordObject.originalText + '</span>';
