@@ -1,6 +1,10 @@
 #MOSES 
 ##(Marklogic Originating Spatial Evaluation Service)
 
+###What is MOSES?
+MOSES is a gazetteer with entity extraction and text enrichment library intended to be used as a service. Basically, you can
+search locations by a myriad of ways and also pass it text to find locations within it.
+
 Data is derived from www.geonames.org, modified to fit a NoSQL document format, all else is original work.
 Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Content Pump](https://developer.marklogic.com/products/mlcp) to deploy.
 
