@@ -8,7 +8,7 @@ search locations by a myriad of ways and also pass it text to find locations wit
 Data is derived from www.geonames.org, modified to fit a NoSQL document format, all else is original work.
 Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Content Pump](https://developer.marklogic.com/products/mlcp) to deploy.
 
-[Demo is available at http://ebadirad.com:8055](http://ebadirad.com:8055/)
+[Demo is available at http://moses.ebadirad.com](http://moses.ebadirad.com/)
 
 ---
 ##VERSION: 0.2-Alpha
@@ -43,7 +43,7 @@ Uses the [Roxy framework](https://github.com/marklogic/roxy) and [Marklogic Cont
 Notice:
 A lot of the code is messy and the built in API is really made just to make the demo work.
 
-Now that it is in alpha, refactoring, functionization, optimization, general code clean up, standardization of conventions (naming and coding!), and API documentation need to be done.
+Now that it is in alpha, refactoring, functionization, optimization, general code clean up, standardization of conventions (naming and coding!), and API documentation need to be done. It is usable and stable, but it is a lot of spaghetti at the moment.
 
 This is not released under a license yet, contact for information to use in a commercial/government capacity.
 
