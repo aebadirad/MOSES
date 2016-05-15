@@ -2491,7 +2491,8 @@ Moses.Extract = {
   resolveEnrichedTextNLP: function(sentences) {
     var response = {
       records: [],
-      text: ''
+      text: '',
+      all: []
     }
     var sentences = sentences;
     var text = '';
@@ -2632,7 +2633,8 @@ Moses.Extract = {
         if (tag === 'NNPL') {
           var id = null;
           var loc = null;
-          if (wordObject.locations && wordObject.locations.length > 0 && !wordObject.confirmed) {
+          if (wordObject.locations && wordObject.locations.length > 0 && wordObject.confirmed ===
+            false) {
             //now we gotta try to figure it out!
             //does it have locations with it? 
             var mostPopulation = Math.max.apply(Math, wordObject.locations.map(function(o) {
@@ -2651,8 +2653,7 @@ Moses.Extract = {
             id = wordObject.location.geonameid;
             loc = wordObject.location;
           }
-
-          if (id) {
+          if (id !== null) {
             wordObject.originalText = '<span class="highlight NNPL" geoid="' + id + '">' +
               wordObject.originalText + '</span>';
             if (idList.indexOf(parseInt(id)) === -1) {
