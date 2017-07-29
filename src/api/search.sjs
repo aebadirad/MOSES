@@ -19,7 +19,7 @@ if (geonameid && searchFunction === 'getLocationById') {
 	options = options.toObject();
 	//grab results so we can look up some more information on them
 	var result = Moses.Location.findLocations(options.options);
-	if(result.count === 0){
+	if(fn.count(result) === 0){
 		options.options.fuzzy = true;
 		result = Moses.Location.findLocations(options.options);
 	}

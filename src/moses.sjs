@@ -93,7 +93,7 @@ Moses.Feature = {
   },
   getFeatureNameByPair: function(featureClass, featureCode) {
     return cts.doc('/feature-codes/' + featureClass + '/' + featureCode +
-      '.json').root.asciiname;
+      '.json').asciiname;
   },
   getAllFeatureCodesFromClass: function(featureClass) {
     return cts.elementValues(xs.QName('featureCode'), '', ['ascending'],
@@ -297,7 +297,7 @@ Moses.AdminCode = {
       cts.jsonPropertyValueQuery('adminCode', code)
     ])), 1, 1);
     if (results.count > 0) {
-      return results.next().value.root.name;
+      return results.name;
     }
   },
   getAdmin2CodesByCode: function(code) {
@@ -514,7 +514,7 @@ Moses.Location = {
     var results = cts.search(cts.andQuery([cts.jsonPropertyPairGeospatialQuery(
       'geo', 'latitude', 'longitude', cts.circle(radius, cts.point(
         lat, lon))), cts.andQuery(andQuery)]));
-    if (results.count > 1) {
+    if (fn.count(results) > 1) {
       results = results.toArray();
       var distances = [];
       for (var i = 0; i < results.length; i++) {
@@ -920,8 +920,8 @@ Moses.Extract = {
       var id = '';
       if (tag === 'NNPL') {
         var loc = Moses.Extract.resolveLocation(word);
-        if (loc.count > 0) {
-          id = loc.clone().next().value.root.geonameid;
+        if (fn.count(loc) > 0) {
+          id = loc.root.geonameid;
         }
         if (id) {
           replaceText += '<span class="highlight" geoid="' + id + '">' +
@@ -986,8 +986,8 @@ Moses.Extract = {
       var id;
       if (tag === 'NNPL') {
         var loc = Moses.Extract.resolveLocation(place);
-        if (loc.count > 0) {
-          id = loc.clone().next().value.root.geonameid;
+        if (fn.count(loc) > 0) {
+          id = loc.root.geonameid;
         }
         if (id) {
           if (idList.indexOf(place) === -1) {
